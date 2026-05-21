@@ -426,39 +426,44 @@ function drawSVG(landmarks) {
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const bW = maxX - minX;
     const cx = (minX + maxX) / 2;
-const topY = Math.min(...ys); // 眉毛の最上点
-const sx = bW / 360, sy = sx * 2.8;
-const cy = topY + 30 * sy; // テンプレートのy=45を最上点に合わせる
+    const cy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15;
+    const sx = bW / 360, sy = sx * 3;
 
     // transform文字列
     const tf = flip
       ? `translate(${cx+200*sx},${cy-50*sy}) scale(${-sx},${sy})`
       : `translate(${cx-200*sx},${cy-50*sy}) scale(${sx},${sy})`;
 
-    // 青パス（残す）- フィルターは変換の外側のwrapperに適用
+    // 青パス（残す）- 薄い透明ガイド
     const blueWrap = document.createElementNS('http://www.w3.org/2000/svg','g');
     blueWrap.setAttribute('filter','url(#f-blue)');
-    blueWrap.setAttribute('opacity','0.85');
+    blueWrap.setAttribute('opacity','0.5');
     const blueG = document.createElementNS('http://www.w3.org/2000/svg','g');
     blueG.setAttribute('transform', tf);
     const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
     bp.setAttribute('d', tmpl.path);
     bp.setAttribute('fill','#2E7CF6');
-    bp.setAttribute('fill-opacity','0.7');
+    bp.setAttribute('fill-opacity','0.35');
+    bp.setAttribute('stroke','#88ccff');
+    bp.setAttribute('stroke-width','1.5');
+    bp.setAttribute('stroke-opacity','0.7');
     blueG.appendChild(bp);
     blueWrap.appendChild(blueG);
     svg.appendChild(blueWrap);
 
-    // 赤パス（削る）- フィルターは変換の外側に適用
+    // 赤パス（削る）- 薄い透明ガイド
     const redWrap = document.createElementNS('http://www.w3.org/2000/svg','g');
     redWrap.setAttribute('filter','url(#f-red)');
-    redWrap.setAttribute('opacity','0.8');
+    redWrap.setAttribute('opacity','0.5');
     const redG = document.createElementNS('http://www.w3.org/2000/svg','g');
     redG.setAttribute('transform', tf);
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
     rp.setAttribute('fill','#FF3B3B');
-    rp.setAttribute('fill-opacity','0.75');
+    rp.setAttribute('fill-opacity','0.3');
+    rp.setAttribute('stroke','#ff8888');
+    rp.setAttribute('stroke-width','1');
+    rp.setAttribute('stroke-opacity','0.6');
     redG.appendChild(rp);
     redWrap.appendChild(redG);
     svg.appendChild(redWrap);
