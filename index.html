@@ -151,7 +151,34 @@
     border-radius:14px; font-size:13px;
     cursor:pointer; letter-spacing:1px;
   }
-  #back-btn:active { opacity:0.6; }
+  #adjust-wrap {
+    display:flex; align-items:center; justify-content:center;
+    gap:20px; padding:10px 20px 14px;
+  }
+  .adjust-col {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .adjust-label {
+    font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.3);
+    text-transform:uppercase;
+  }
+  .adj-btn {
+    width:44px; height:44px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    color:#fff; border-radius:12px;
+    font-size:18px; cursor:pointer;
+    transition:all 0.15s; display:flex;
+    align-items:center; justify-content:center;
+  }
+  .adj-btn:active { background:rgba(255,255,255,0.2); transform:scale(0.94); }
+  #reset-btn {
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.35);
+    padding:8px 16px; border-radius:20px;
+    font-size:10px; letter-spacing:2px; cursor:pointer;
+  }
 
   /* ── AR LEGEND ── */
   #ar-legend {
@@ -304,6 +331,22 @@
     <div id="ar-scene-label">AIが選んだ眉毛スタイル</div>
     <div id="ar-scene-name"></div>
     <div id="scene-wrap"></div>
+
+    <!-- 左右独立調整ボタン -->
+    <div id="adjust-wrap">
+      <div class="adjust-col">
+        <div class="adjust-label">左眉</div>
+        <button class="adj-btn" onclick="adjustY('left',-3)">↑</button>
+        <button class="adj-btn" onclick="adjustY('left',3)">↓</button>
+      </div>
+      <button id="reset-btn" onclick="resetY()">リセット</button>
+      <div class="adjust-col">
+        <div class="adjust-label">右眉</div>
+        <button class="adj-btn" onclick="adjustY('right',-3)">↑</button>
+        <button class="adj-btn" onclick="adjustY('right',3)">↓</button>
+      </div>
+    </div>
+
     <button id="back-btn" onclick="backToScan()">← 診断結果に戻る</button>
   </div>
 </div>
@@ -391,6 +434,18 @@ let currentScene   = 'mens-business';
 let aiScene        = 'mens-business';
 let faceMesh       = null;
 let videoW = 640, videoH = 480;
+let leftYOffset  = 0;  // 左眉の手動オフセット（px）
+let rightYOffset = 0;  // 右眉の手動オフセット（px）
+
+function adjustY(side, delta) {
+  if (side === 'left')  leftYOffset  += delta;
+  if (side === 'right') rightYOffset += delta;
+}
+
+function resetY() {
+  leftYOffset = 0;
+  rightYOffset = 0;
+}
 
 function setGender(g, btn) {
   currentGender = g;
@@ -423,16 +478,16 @@ function drawSVG(landmarks) {
   svg.appendChild(defs);
 
   [
-    { indices: LEFT_EYEBROW,  flip: false },
-    { indices: RIGHT_EYEBROW, flip: true  }
-  ].forEach(({ indices, flip }) => {
+    { indices: LEFT_EYEBROW,  flip: false, yOff: leftYOffset  },
+    { indices: RIGHT_EYEBROW, flip: true,  yOff: rightYOffset }
+  ].forEach(({ indices, flip, yOff }) => {
     const pts = indices.map(i => landmarks[i]);
     const xs = pts.map(p => p.x * videoW);
     const ys = pts.map(p => p.y * videoH);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const bW = maxX - minX;
     const cx = (minX + maxX) / 2;
-    const cy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15;
+    const cy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15 + yOff;
     const sx = bW / 360, sy = sx * 3;
 
     // transform文字列
@@ -466,7 +521,9 @@ function drawSVG(landmarks) {
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
     rp.setAttribute('fill','url(#hatch)');
-   rp.setAttribute('stroke','none');
+    rp.setAttribute('stroke','#FF3B3B');
+    rp.setAttribute('stroke-width','2');
+    rp.setAttribute('stroke-opacity','0.9');
     redG.appendChild(rp);
     redWrap.appendChild(redG);
     svg.appendChild(redWrap);
