@@ -6,147 +6,143 @@
 <title>眉毛ARナビ</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-
-  #camera-wrap {
-    position: fixed;
-    inset: 0;
-  }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Helvetica Neue', sans-serif; }
+  #camera-wrap { position: fixed; inset: 0; }
   #video {
-    position: absolute;
-    top: 50%; left: 50%;
+    position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%) scaleX(-1);
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
+    min-width: 100%; min-height: 100%; width: auto; height: auto;
     filter: brightness(1.08) contrast(0.88) saturate(1.15) blur(0.4px);
   }
   #svg-overlay {
-    position: absolute;
-    inset: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    transform: scaleX(-1);
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; transform: scaleX(-1);
   }
-  #ui {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    padding: 20px 20px 36px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.88));
-    z-index: 10;
-  }
-  #scene-label {
-    text-align: center;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: #ffffff55;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    font-family: 'Helvetica Neue', sans-serif;
-  }
-  #scene-list {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .scene-btn {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-    font-family: 'Helvetica Neue', sans-serif;
-  }
-  .scene-btn.active {
-    background: #fff;
-    color: #000;
-    font-weight: 700;
-  }
-  #legend {
-    position: fixed;
-    top: 60px;
-    right: 16px;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11px;
-    color: #fff;
-    font-family: 'Helvetica Neue', sans-serif;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-  }
-  .legend-dot { width: 11px; height: 11px; border-radius: 50%; }
   #status {
-    position: fixed;
-    top: 16px; left: 16px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: #ffffff55;
-    z-index: 10;
-    text-transform: uppercase;
-    font-family: 'Helvetica Neue', sans-serif;
+    position: fixed; top: 16px; left: 16px;
+    font-size: 10px; letter-spacing: 2px; color: #ffffff55;
+    z-index: 10; text-transform: uppercase;
     text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
   #status.detecting { color: #2ecc71; }
   #status.searching { color: #e67e22; }
   #gender-toggle {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex;
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 10; display: flex;
     background: rgba(0,0,0,0.55);
     border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 22px;
-    overflow: hidden;
+    border-radius: 22px; overflow: hidden;
   }
   .gender-btn {
-    padding: 8px 22px;
-    font-size: 11px;
-    letter-spacing: 2px;
-    cursor: pointer;
-    color: #ffffff66;
-    transition: all 0.2s;
-    border: none;
-    background: none;
-    font-family: 'Helvetica Neue', sans-serif;
+    padding: 8px 22px; font-size: 11px; letter-spacing: 2px;
+    cursor: pointer; color: #ffffff66;
+    transition: all 0.2s; border: none; background: none;
   }
   .gender-btn.active { background: #fff; color: #000; font-weight: 700; }
+  #legend {
+    position: fixed; top: 60px; right: 16px; z-index: 10;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+  .legend-dot { width: 11px; height: 11px; border-radius: 50%; }
+  #ui {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 16px 20px 36px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.9));
+    z-index: 10;
+  }
+  #scene-label {
+    text-align: center; font-size: 10px; letter-spacing: 3px;
+    color: #ffffff44; text-transform: uppercase; margin-bottom: 10px;
+  }
+  #scene-list {
+    display: flex; gap: 8px; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .scene-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff; padding: 8px 16px; border-radius: 20px;
+    font-size: 12px; cursor: pointer; white-space: nowrap;
+    transition: all 0.2s; letter-spacing: 1px;
+  }
+  .scene-btn.active { background: #fff; color: #000; font-weight: 700; }
+  #scan-btn {
+    display: block; width: 100%;
+    background: linear-gradient(135deg, #e74c3c, #2980b9);
+    border: none; color: #fff; padding: 14px; border-radius: 12px;
+    font-size: 14px; font-weight: 700; letter-spacing: 3px;
+    cursor: pointer; transition: opacity 0.2s; text-transform: uppercase;
+  }
+  #scan-btn:active { opacity: 0.7; }
+  #scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #result-panel {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.93); z-index: 50;
+    flex-direction: column; align-items: center;
+    justify-content: flex-start; padding: 50px 24px 40px;
+    overflow-y: auto;
+  }
+  #result-panel.show { display: flex; }
+  #result-photo {
+    width: 140px; height: 140px; border-radius: 50%;
+    object-fit: cover; border: 3px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px; transform: scaleX(-1);
+  }
+  #result-scene-badge {
+    font-size: 9pt; letter-spacing: 4px;
+    color: #e74c3c; text-transform: uppercase; margin-bottom: 8px;
+  }
+  #result-title {
+    font-size: 20px; font-weight: 900; color: #fff;
+    letter-spacing: 2px; margin-bottom: 24px; text-align: center;
+  }
+  .result-section {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 18px; margin-bottom: 14px;
+    border-left: 3px solid;
+  }
+  .result-section.red  { border-left-color: #e74c3c; }
+  .result-section.blue { border-left-color: #3498db; }
+  .result-section.gold { border-left-color: #f39c12; }
+  .result-section-label {
+    font-size: 8px; letter-spacing: 3px; color: #ffffff55;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .result-section-text { font-size: 13px; color: #ffffffdd; line-height: 1.8; }
+  #close-btn {
+    margin-top: 10px; width: 100%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; padding: 14px; border-radius: 12px;
+    font-size: 13px; cursor: pointer; letter-spacing: 2px;
+  }
   #loading {
-    position: fixed;
-    inset: 0;
-    background: #0a0a0f;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    gap: 16px;
-    font-family: 'Helvetica Neue', sans-serif;
+    position: fixed; inset: 0; background: #0a0a0f;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100; gap: 16px;
   }
   #loading-title { font-size: 18px; font-weight: 700; letter-spacing: 4px; color: #fff; }
   #loading-sub { font-size: 11px; color: #ffffff44; letter-spacing: 3px; }
   .spinner {
     width: 36px; height: 36px;
-    border: 2px solid #ffffff11;
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    border: 2px solid #ffffff11; border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  #analyzing {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); z-index: 60;
+    flex-direction: column; align-items: center;
+    justify-content: center; gap: 16px;
+  }
+  #analyzing.show { display: flex; }
+  #analyzing p { font-size: 12px; color: #fff; letter-spacing: 3px; }
 </style>
 </head>
 <body>
@@ -154,11 +150,17 @@
 <div id="loading">
   <div class="spinner"></div>
   <div id="loading-title">EYEBROW AR</div>
-  <div id="loading-sub" id="loading-sub">AI読み込み中...</div>
+  <div id="loading-sub">AI読み込み中...</div>
+</div>
+
+<div id="analyzing">
+  <div class="spinner"></div>
+  <p>AI診断中...</p>
 </div>
 
 <div id="camera-wrap">
   <video id="video" autoplay muted playsinline></video>
+  <canvas id="capture-canvas" style="display:none;"></canvas>
   <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"></svg>
 
   <div id="status" class="searching">● SEARCHING</div>
@@ -173,7 +175,27 @@
   <div id="ui">
     <div id="scene-label">— シーンを選択 —</div>
     <div id="scene-list"></div>
+    <button id="scan-btn" onclick="startScan()" disabled>● AI診断する</button>
   </div>
+</div>
+
+<div id="result-panel">
+  <img id="result-photo" src="" alt="">
+  <div id="result-scene-badge"></div>
+  <div id="result-title">AI眉毛診断レポート</div>
+  <div class="result-section red">
+    <div class="result-section-label">🔴 削る・整える場所</div>
+    <div class="result-section-text" id="r-trim"></div>
+  </div>
+  <div class="result-section blue">
+    <div class="result-section-label">🔵 残す・描き足す場所</div>
+    <div class="result-section-text" id="r-keep"></div>
+  </div>
+  <div class="result-section gold">
+    <div class="result-section-label">✨ AIからのアドバイス</div>
+    <div class="result-section-text" id="r-advice"></div>
+  </div>
+  <button id="close-btn" onclick="closeResult()">← カメラに戻る</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
@@ -192,6 +214,12 @@ const TEMPLATES = {
 const SCENES = {
   mens:   ['mens-business','mens-sexy','mens-clean','mens-strong'],
   womens: ['womens-business','womens-sexy','womens-natural','womens-cute']
+};
+const SCENE_NAMES = {
+  'mens-business':'ビジネス眉（信頼・知性）','mens-sexy':'モテ眉（フェロモン・色気）',
+  'mens-clean':'清潔眉（ナチュラル・爽やか）','mens-strong':'強さ眉（ワイルド・意思）',
+  'womens-business':'ハンサム眉（自立・知性）','womens-sexy':'エレガント眉（フェロモン・華やか）',
+  'womens-natural':'ふんわり眉（優しさ・親しみ）','womens-cute':'平行眉（ピュア・可愛らしさ）'
 };
 const LEFT_EYEBROW  = [46,53,52,65,55,70,63,105,66,107];
 const RIGHT_EYEBROW = [276,283,282,295,285,300,293,334,296,336];
@@ -230,7 +258,6 @@ function drawEyebrowSVG(landmarks) {
   svg.innerHTML = '';
   const tmpl = TEMPLATES[currentScene];
   if (!tmpl) return;
-
   [
     { indices: LEFT_EYEBROW,  flip: false },
     { indices: RIGHT_EYEBROW, flip: true  }
@@ -238,46 +265,77 @@ function drawEyebrowSVG(landmarks) {
     const pts = indices.map(i => landmarks[i]);
     const xs = pts.map(p => p.x * videoW);
     const ys = pts.map(p => p.y * videoH);
-
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2 - (maxX - minX) * 0.15; // 眉毛の幅の15%分上にオフセット
     const bW = maxX - minX;
-
-    // テンプレートx幅(360px)→実際の眉幅
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2 - bW * 0.15;
     const sx = bW / 360;
-    // y方向は眉毛らしい太さになるよう3倍で補正
     const sy = sx * 3;
-
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     if (flip) {
-      g.setAttribute('transform',
-        `translate(${cx + 200 * sx}, ${cy - 50 * sy}) scale(${-sx}, ${sy})`
-      );
+      g.setAttribute('transform', `translate(${cx + 200*sx},${cy - 50*sy}) scale(${-sx},${sy})`);
     } else {
-      g.setAttribute('transform',
-        `translate(${cx - 200 * sx}, ${cy - 50 * sy}) scale(${sx}, ${sy})`
-      );
+      g.setAttribute('transform', `translate(${cx - 200*sx},${cy - 50*sy}) scale(${sx},${sy})`);
     }
-
-    const bp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
     bp.setAttribute('d', tmpl.path);
-    bp.setAttribute('fill', '#0055FF');
-    bp.setAttribute('fill-opacity', '0.65');
-    bp.setAttribute('stroke', '#66aaff');
-    bp.setAttribute('stroke-width', '1');
+    bp.setAttribute('fill','#0055FF');
+    bp.setAttribute('fill-opacity','0.6');
+    bp.setAttribute('stroke','#66aaff');
+    bp.setAttribute('stroke-width','1');
     g.appendChild(bp);
-
-    const rp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
-    rp.setAttribute('fill', '#FF3333');
-    rp.setAttribute('fill-opacity', '0.7');
+    rp.setAttribute('fill','#FF3333');
+    rp.setAttribute('fill-opacity','0.7');
     g.appendChild(rp);
-
     svg.appendChild(g);
   });
+}
+
+async function startScan() {
+  const video  = document.getElementById('video');
+  const canvas = document.getElementById('capture-canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, -canvas.width, 0);
+  ctx.restore();
+  const imageBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  document.getElementById('result-photo').src = canvas.toDataURL('image/jpeg', 0.8);
+  document.getElementById('analyzing').classList.add('show');
+
+  try {
+    // ★ Vercelのサーバー経由でGeminiを呼ぶ（APIキーを隠す）
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64,
+        scene: SCENE_NAMES[currentScene]
+      })
+    });
+
+    const result = await response.json();
+    document.getElementById('result-scene-badge').textContent = SCENE_NAMES[currentScene];
+    document.getElementById('r-trim').textContent   = result.trim;
+    document.getElementById('r-keep').textContent   = result.keep;
+    document.getElementById('r-advice').textContent = result.advice;
+    document.getElementById('analyzing').classList.remove('show');
+    document.getElementById('result-panel').classList.add('show');
+
+  } catch(e) {
+    document.getElementById('analyzing').classList.remove('show');
+    alert('診断に失敗しました。');
+    console.error(e);
+  }
+}
+
+function closeResult() {
+  document.getElementById('result-panel').classList.remove('show');
 }
 
 async function initFaceMesh() {
@@ -285,20 +343,21 @@ async function initFaceMesh() {
     locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
   });
   faceMesh.setOptions({
-    maxNumFaces: 1,
-    refineLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
+    maxNumFaces: 1, refineLandmarks: true,
+    minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
   });
   faceMesh.onResults(results => {
-    const status = document.getElementById('status');
+    const status  = document.getElementById('status');
+    const scanBtn = document.getElementById('scan-btn');
     if (results.multiFaceLandmarks?.length > 0) {
       status.textContent = '● DETECTING';
       status.className = 'detecting';
+      scanBtn.disabled = false;
       drawEyebrowSVG(results.multiFaceLandmarks[0]);
     } else {
       status.textContent = '● SEARCHING';
       status.className = 'searching';
+      scanBtn.disabled = true;
       document.getElementById('svg-overlay').innerHTML = '';
     }
   });
@@ -307,29 +366,21 @@ async function initFaceMesh() {
 async function startCamera() {
   const video = document.getElementById('video');
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user' }
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
     video.srcObject = stream;
-
     await new Promise(r => { video.onloadedmetadata = r; });
     await video.play();
-
-    // 実際のカメラ解像度を取得してSVGのviewBoxに設定
     videoW = video.videoWidth  || 640;
     videoH = video.videoHeight || 480;
     const svg = document.getElementById('svg-overlay');
     svg.setAttribute('viewBox', `0 0 ${videoW} ${videoH}`);
-
     const camera = new Camera(video, {
       onFrame: async () => { if (faceMesh) await faceMesh.send({ image: video }); }
     });
     camera.start();
     document.getElementById('loading').style.display = 'none';
-
   } catch(e) {
     document.getElementById('loading-sub').textContent = 'カメラの許可をしてください';
-    console.error(e);
   }
 }
 
