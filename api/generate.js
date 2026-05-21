@@ -24,6 +24,7 @@ export default async function handler(req, res) {
   "keep": "残す・描き足す場所を具体的に"
 }`;
 
+    // 【修正箇所】モデル名前後の不要なダブルクォーテーションを綺麗に除去しました
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
       {
