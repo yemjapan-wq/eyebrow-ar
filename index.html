@@ -3,198 +3,346 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>眉毛ARナビ</title>
+<title>BROW AI</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Helvetica Neue', sans-serif; }
-  #camera-wrap { position: fixed; inset: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000; font-family:-apple-system,'Helvetica Neue',sans-serif; color:#fff; }
+
+  /* ── SPLASH ── */
+  #splash {
+    position:fixed; inset:0; z-index:200;
+    background:#000;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    transition:opacity 0.8s ease;
+  }
+  #splash.hide { opacity:0; pointer-events:none; }
+  .sp-eyebrow {
+    font-size:9px; letter-spacing:6px; color:rgba(255,255,255,0.3);
+    text-transform:uppercase; margin-bottom:20px;
+  }
+  .sp-logo {
+    font-size:52px; font-weight:700; letter-spacing:-2px; color:#fff;
+    margin-bottom:6px;
+  }
+  .sp-logo span { color:#fff; font-weight:200; }
+  .sp-tagline {
+    font-size:10px; letter-spacing:3px; color:rgba(255,255,255,0.3);
+    margin-bottom:56px;
+  }
+  .sp-line {
+    width:48px; height:1px;
+    background:rgba(255,255,255,0.2);
+    position:relative; overflow:hidden;
+  }
+  .sp-line::after {
+    content:''; position:absolute; top:0; left:-100%;
+    width:100%; height:100%;
+    background:#fff;
+    animation: scanline 1.8s ease forwards;
+  }
+  @keyframes scanline { to { left:100%; } }
+  .sp-loading {
+    font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.2);
+    margin-top:20px;
+  }
+
+  /* ── CAMERA ── */
+  #app { position:fixed; inset:0; }
   #video {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%) scaleX(-1);
-    min-width: 100%; min-height: 100%; width: auto; height: auto;
-    filter: brightness(1.08) contrast(0.88) saturate(1.15) blur(0.4px);
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%) scaleX(-1);
+    min-width:100%; min-height:100%;
+    width:auto; height:auto;
+    filter:brightness(1.06) contrast(0.9) saturate(1.12) blur(0.3px);
   }
   #svg-overlay {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    pointer-events: none; transform: scaleX(-1);
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; transform:scaleX(-1);
   }
-  #status {
-    position: fixed; top: 16px; left: 16px;
-    font-size: 10px; letter-spacing: 2px; color: #ffffff55;
-    z-index: 10; text-transform: uppercase;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+
+  /* ── TOP BAR ── */
+  #topbar {
+    position:fixed; top:0; left:0; right:0;
+    padding:54px 20px 16px;
+    background:linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+    display:flex; align-items:center; justify-content:space-between;
+    z-index:10;
   }
-  #status.detecting { color: #2ecc71; }
-  #status.searching { color: #e67e22; }
+  #status-dot {
+    width:6px; height:6px; border-radius:50%;
+    background:#555; transition:background 0.3s;
+  }
+  #status-dot.on { background:#34C759; box-shadow:0 0 8px #34C759; }
+  #status-text {
+    font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.4);
+    text-transform:uppercase; margin-left:8px;
+  }
+  #status-wrap { display:flex; align-items:center; }
+  #app-name {
+    font-size:14px; font-weight:600; letter-spacing:2px; color:#fff;
+  }
+  #legend-wrap { display:flex; gap:12px; }
+  .leg {
+    display:flex; align-items:center; gap:5px;
+    font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:1px;
+  }
+  .leg-dot { width:6px; height:6px; border-radius:50%; }
+
+  /* ── GENDER TOGGLE ── */
   #gender-toggle {
-    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-    z-index: 10; display: flex;
-    background: rgba(0,0,0,0.55);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 22px; overflow: hidden;
+    position:fixed; top:110px; left:50%; transform:translateX(-50%);
+    z-index:10;
+    display:flex;
+    background:rgba(0,0,0,0.4);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:30px;
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    padding:3px;
   }
   .gender-btn {
-    padding: 8px 22px; font-size: 11px; letter-spacing: 2px;
-    cursor: pointer; color: #ffffff66;
-    transition: all 0.2s; border: none; background: none;
+    padding:8px 28px; font-size:11px; font-weight:500;
+    letter-spacing:2px; cursor:pointer; border:none;
+    background:none; color:rgba(255,255,255,0.4);
+    border-radius:26px; transition:all 0.25s;
+    text-transform:uppercase;
   }
-  .gender-btn.active { background: #fff; color: #000; font-weight: 700; }
-  #legend {
-    position: fixed; top: 60px; right: 16px; z-index: 10;
-    display: flex; flex-direction: column; gap: 7px;
+  .gender-btn.active {
+    background:#fff; color:#000; font-weight:600;
   }
-  .legend-item {
-    display: flex; align-items: center; gap: 7px;
-    font-size: 11px; color: #fff;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+
+  /* ── BOTTOM UI ── */
+  #bottom {
+    position:fixed; bottom:0; left:0; right:0;
+    padding:0 0 40px;
+    background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
+    z-index:10;
   }
-  .legend-dot { width: 11px; height: 11px; border-radius: 50%; }
-  #ui {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    padding: 16px 20px 36px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.9));
-    z-index: 10;
+
+  /* シーンスクロール */
+  #scene-wrap {
+    overflow-x:auto; overflow-y:hidden;
+    display:flex; gap:8px;
+    padding:20px 20px 16px;
+    scrollbar-width:none;
   }
-  #scene-label {
-    text-align: center; font-size: 10px; letter-spacing: 3px;
-    color: #ffffff44; text-transform: uppercase; margin-bottom: 10px;
-  }
-  #scene-list {
-    display: flex; gap: 8px; justify-content: center;
-    flex-wrap: wrap; margin-bottom: 14px;
-  }
+  #scene-wrap::-webkit-scrollbar { display:none; }
   .scene-btn {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: #fff; padding: 8px 16px; border-radius: 20px;
-    font-size: 12px; cursor: pointer; white-space: nowrap;
-    transition: all 0.2s; letter-spacing: 1px;
+    flex-shrink:0;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.12);
+    color:rgba(255,255,255,0.7);
+    padding:9px 18px; border-radius:30px;
+    font-size:12px; font-weight:400;
+    cursor:pointer; white-space:nowrap;
+    transition:all 0.2s; letter-spacing:0.5px;
   }
-  .scene-btn.active { background: #fff; color: #000; font-weight: 700; }
+  .scene-btn.active {
+    background:#fff; color:#000;
+    font-weight:600; border-color:#fff;
+  }
+
+  /* スキャンボタン */
   #scan-btn {
-    display: block; width: 100%;
-    background: linear-gradient(135deg, #e74c3c, #2980b9);
-    border: none; color: #fff; padding: 14px; border-radius: 12px;
-    font-size: 14px; font-weight: 700; letter-spacing: 3px;
-    cursor: pointer; transition: opacity 0.2s; text-transform: uppercase;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:calc(100% - 40px); margin:0 20px;
+    background:#fff; color:#000;
+    border:none; padding:16px;
+    border-radius:14px; font-size:14px; font-weight:600;
+    letter-spacing:1px; cursor:pointer;
+    transition:all 0.2s; position:relative; overflow:hidden;
   }
-  #scan-btn:active { opacity: 0.7; }
-  #scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  #result-panel {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.93); z-index: 50;
-    flex-direction: column; align-items: center;
-    justify-content: flex-start; padding: 50px 24px 40px;
-    overflow-y: auto;
+  #scan-btn:active { transform:scale(0.98); opacity:0.9; }
+  #scan-btn:disabled {
+    background:rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.2); cursor:not-allowed;
   }
-  #result-panel.show { display: flex; }
-  #result-photo {
-    width: 140px; height: 140px; border-radius: 50%;
-    object-fit: cover; border: 3px solid rgba(255,255,255,0.2);
-    margin-bottom: 20px; transform: scaleX(-1);
+  #scan-btn:disabled:active { transform:none; }
+  .scan-icon {
+    width:18px; height:18px; border-radius:50%;
+    border:2px solid currentColor;
+    position:relative; flex-shrink:0;
   }
-  #result-scene-badge {
-    font-size: 9pt; letter-spacing: 4px;
-    color: #e74c3c; text-transform: uppercase; margin-bottom: 8px;
+  .scan-icon::after {
+    content:''; position:absolute;
+    top:50%; left:50%;
+    width:6px; height:6px; border-radius:50%;
+    background:currentColor;
+    transform:translate(-50%,-50%);
   }
-  #result-title {
-    font-size: 20px; font-weight: 900; color: #fff;
-    letter-spacing: 2px; margin-bottom: 24px; text-align: center;
-  }
-  .result-section {
-    width: 100%; background: rgba(255,255,255,0.06);
-    border-radius: 12px; padding: 18px; margin-bottom: 14px;
-    border-left: 3px solid;
-  }
-  .result-section.red  { border-left-color: #e74c3c; }
-  .result-section.blue { border-left-color: #3498db; }
-  .result-section.gold { border-left-color: #f39c12; }
-  .result-section-label {
-    font-size: 8px; letter-spacing: 3px; color: #ffffff55;
-    text-transform: uppercase; margin-bottom: 8px;
-  }
-  .result-section-text { font-size: 13px; color: #ffffffdd; line-height: 1.8; }
-  #close-btn {
-    margin-top: 10px; width: 100%;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff; padding: 14px; border-radius: 12px;
-    font-size: 13px; cursor: pointer; letter-spacing: 2px;
-  }
-  #loading {
-    position: fixed; inset: 0; background: #0a0a0f;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 100; gap: 16px;
-  }
-  #loading-title { font-size: 18px; font-weight: 700; letter-spacing: 4px; color: #fff; }
-  #loading-sub { font-size: 11px; color: #ffffff44; letter-spacing: 3px; }
-  .spinner {
-    width: 36px; height: 36px;
-    border: 2px solid #ffffff11; border-top-color: #fff;
-    border-radius: 50%; animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ANALYZING ── */
   #analyzing {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.8); z-index: 60;
-    flex-direction: column; align-items: center;
-    justify-content: center; gap: 16px;
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.75);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    z-index:60; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px;
   }
-  #analyzing.show { display: flex; }
-  #analyzing p { font-size: 12px; color: #fff; letter-spacing: 3px; }
+  #analyzing.show { display:flex; }
+  .ana-ring {
+    width:44px; height:44px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.1);
+    border-top-color:#fff;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .ana-text { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.5); }
+
+  /* ── RESULT PANEL ── */
+  #result-panel {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.96);
+    backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+    z-index:50; overflow-y:auto;
+    padding:60px 20px 40px;
+  }
+  #result-panel.show { display:block; }
+
+  .result-photo-wrap {
+    display:flex; justify-content:center; margin-bottom:24px;
+  }
+  #result-photo {
+    width:96px; height:96px; border-radius:50%;
+    object-fit:cover; transform:scaleX(-1);
+    border:1px solid rgba(255,255,255,0.15);
+  }
+
+  .result-header { text-align:center; margin-bottom:32px; }
+  .result-scene {
+    font-size:10px; letter-spacing:4px; color:rgba(255,255,255,0.35);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  .result-title { font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+
+  .result-divider {
+    width:32px; height:1px;
+    background:rgba(255,255,255,0.15);
+    margin:16px auto 0;
+  }
+
+  .result-card {
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px; padding:20px;
+    margin-bottom:12px;
+  }
+  .result-card-header {
+    display:flex; align-items:center; gap:10px; margin-bottom:12px;
+  }
+  .result-card-dot {
+    width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  }
+  .result-card-label {
+    font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.3);
+    text-transform:uppercase;
+  }
+  .result-card-text {
+    font-size:13px; color:rgba(255,255,255,0.85);
+    line-height:1.9; font-weight:300;
+  }
+
+  #close-btn {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; margin-top:20px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.6);
+    padding:15px; border-radius:14px;
+    font-size:13px; cursor:pointer; letter-spacing:1px;
+    transition:all 0.2s;
+  }
+  #close-btn:active { opacity:0.6; }
 </style>
 </head>
 <body>
 
-<div id="loading">
-  <div class="spinner"></div>
-  <div id="loading-title">EYEBROW AR</div>
-  <div id="loading-sub">AI読み込み中...</div>
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-eyebrow">Powered by Gemini AI</div>
+  <div class="sp-logo">BROW<span>AI</span></div>
+  <div class="sp-tagline">Find your perfect eyebrow</div>
+  <div class="sp-line"></div>
+  <div class="sp-loading">Loading...</div>
 </div>
 
+<!-- ANALYZING -->
 <div id="analyzing">
-  <div class="spinner"></div>
-  <p>AI診断中...</p>
+  <div class="ana-ring"></div>
+  <div class="ana-text">AI診断中</div>
 </div>
 
-<div id="camera-wrap">
+<!-- APP -->
+<div id="app">
   <video id="video" autoplay muted playsinline></video>
   <canvas id="capture-canvas" style="display:none;"></canvas>
   <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"></svg>
 
-  <div id="status" class="searching">● SEARCHING</div>
+  <!-- TOP -->
+  <div id="topbar">
+    <div id="status-wrap">
+      <div id="status-dot"></div>
+      <div id="status-text">Searching</div>
+    </div>
+    <div id="app-name">BROW AI</div>
+    <div id="legend-wrap">
+      <div class="leg"><div class="leg-dot" style="background:#FF3B3B;"></div>削る</div>
+      <div class="leg"><div class="leg-dot" style="background:#2E7CF6;"></div>残す</div>
+    </div>
+  </div>
+
+  <!-- GENDER -->
   <div id="gender-toggle">
-    <button class="gender-btn active" onclick="setGender('mens',this)">MENS</button>
-    <button class="gender-btn" onclick="setGender('womens',this)">WOMENS</button>
+    <button class="gender-btn active" onclick="setGender('mens',this)">Mens</button>
+    <button class="gender-btn" onclick="setGender('womens',this)">Womens</button>
   </div>
-  <div id="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#FF3333;"></div>削る</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#0055FF;"></div>残す</div>
-  </div>
-  <div id="ui">
-    <div id="scene-label">— シーンを選択 —</div>
-    <div id="scene-list"></div>
-    <button id="scan-btn" onclick="startScan()" disabled>● AI診断する</button>
+
+  <!-- BOTTOM -->
+  <div id="bottom">
+    <div id="scene-wrap"></div>
+    <button id="scan-btn" onclick="startScan()" disabled>
+      <div class="scan-icon"></div>
+      AI診断する
+    </button>
   </div>
 </div>
 
+<!-- RESULT -->
 <div id="result-panel">
-  <img id="result-photo" src="" alt="">
-  <div id="result-scene-badge"></div>
-  <div id="result-title">AI眉毛診断レポート</div>
-  <div class="result-section red">
-    <div class="result-section-label">🔴 削る・整える場所</div>
-    <div class="result-section-text" id="r-trim"></div>
+  <div class="result-photo-wrap">
+    <img id="result-photo" src="" alt="">
   </div>
-  <div class="result-section blue">
-    <div class="result-section-label">🔵 残す・描き足す場所</div>
-    <div class="result-section-text" id="r-keep"></div>
+  <div class="result-header">
+    <div class="result-scene" id="r-scene"></div>
+    <div class="result-title">AI眉毛診断レポート</div>
+    <div class="result-divider"></div>
   </div>
-  <div class="result-section gold">
-    <div class="result-section-label">✨ AIからのアドバイス</div>
-    <div class="result-section-text" id="r-advice"></div>
+
+  <div class="result-card">
+    <div class="result-card-header">
+      <div class="result-card-dot" style="background:#FF3B3B;"></div>
+      <div class="result-card-label">削る・整える場所</div>
+    </div>
+    <div class="result-card-text" id="r-trim"></div>
   </div>
+
+  <div class="result-card">
+    <div class="result-card-header">
+      <div class="result-card-dot" style="background:#2E7CF6;"></div>
+      <div class="result-card-label">残す・描き足す場所</div>
+    </div>
+    <div class="result-card-text" id="r-keep"></div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-card-header">
+      <div class="result-card-dot" style="background:#F5A623;"></div>
+      <div class="result-card-label">AIからのアドバイス</div>
+    </div>
+    <div class="result-card-text" id="r-advice"></div>
+  </div>
+
   <button id="close-btn" onclick="closeResult()">← カメラに戻る</button>
 </div>
 
@@ -204,7 +352,7 @@
 const TEMPLATES = {
   'mens-business':  { label:'ビジネス', path:'M 20,60 Q 150,48 280,35 L 380,50 Q 280,50 20,70 Z', red:'M 40,70 Q 160,60 260,50 Q 160,70 40,70 Z' },
   'mens-sexy':      { label:'モテる',   path:'M 20,60 Q 150,45 270,35 Q 320,35 380,60 Q 270,45 20,65 Z', red:'M 150,60 Q 250,50 300,55 Q 250,60 150,60 Z' },
-  'mens-clean':     { label:'清潔',     path:'M 20,55 L 20,40 L 280,40 L 380,55 L 280,55 Z', red:'M 30,60 Q 150,60 270,60 Q 150,65 30,60 Z' },
+  'mens-clean':     { label:'清潔感',   path:'M 20,55 L 20,40 L 280,40 L 380,55 L 280,55 Z', red:'M 30,60 Q 150,60 270,60 Q 150,65 30,60 Z' },
   'mens-strong':    { label:'強さ',     path:'M 20,70 L 20,40 Q 150,45 270,28 L 380,55 L 270,45 Q 150,60 20,70 Z', red:'M 30,75 Q 150,65 260,50 Q 150,75 30,75 Z' },
   'womens-business':{ label:'ビジネス', path:'M 20,55 Q 150,45 270,30 L 380,50 Q 270,40 20,60 Z', red:'M 50,65 Q 150,55 250,45 Q 150,60 50,65 Z' },
   'womens-sexy':    { label:'モテる',   path:'M 20,65 Q 120,30 260,25 Q 330,30 380,65 Q 260,35 20,70 Z', red:'M 40,75 Q 150,45 260,45 Q 150,60 40,75 Z' },
@@ -234,12 +382,12 @@ function setGender(g, btn) {
   document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   currentScene = SCENES[g][0];
-  renderSceneButtons();
+  renderScenes();
 }
 
-function renderSceneButtons() {
-  const list = document.getElementById('scene-list');
-  list.innerHTML = '';
+function renderScenes() {
+  const wrap = document.getElementById('scene-wrap');
+  wrap.innerHTML = '';
   SCENES[currentGender].forEach(id => {
     const btn = document.createElement('button');
     btn.className = 'scene-btn' + (id === currentScene ? ' active' : '');
@@ -249,11 +397,11 @@ function renderSceneButtons() {
       document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     };
-    list.appendChild(btn);
+    wrap.appendChild(btn);
   });
 }
 
-function drawEyebrowSVG(landmarks) {
+function drawSVG(landmarks) {
   const svg = document.getElementById('svg-overlay');
   svg.innerHTML = '';
   const tmpl = TEMPLATES[currentScene];
@@ -270,25 +418,24 @@ function drawEyebrowSVG(landmarks) {
     const bW = maxX - minX;
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2 - bW * 0.15;
-    const sx = bW / 360;
-    const sy = sx * 3;
+    const sx = bW / 360, sy = sx * 3;
     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     if (flip) {
-      g.setAttribute('transform', `translate(${cx + 200*sx},${cy - 50*sy}) scale(${-sx},${sy})`);
+      g.setAttribute('transform', `translate(${cx+200*sx},${cy-50*sy}) scale(${-sx},${sy})`);
     } else {
-      g.setAttribute('transform', `translate(${cx - 200*sx},${cy - 50*sy}) scale(${sx},${sy})`);
+      g.setAttribute('transform', `translate(${cx-200*sx},${cy-50*sy}) scale(${sx},${sy})`);
     }
     const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
     bp.setAttribute('d', tmpl.path);
-    bp.setAttribute('fill','#0055FF');
-    bp.setAttribute('fill-opacity','0.6');
-    bp.setAttribute('stroke','#66aaff');
+    bp.setAttribute('fill','#2E7CF6');
+    bp.setAttribute('fill-opacity','0.55');
+    bp.setAttribute('stroke','#6AABFF');
     bp.setAttribute('stroke-width','1');
     g.appendChild(bp);
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
-    rp.setAttribute('fill','#FF3333');
-    rp.setAttribute('fill-opacity','0.7');
+    rp.setAttribute('fill','#FF3B3B');
+    rp.setAttribute('fill-opacity','0.65');
     g.appendChild(rp);
     svg.appendChild(g);
   });
@@ -297,40 +444,32 @@ function drawEyebrowSVG(landmarks) {
 async function startScan() {
   const video  = document.getElementById('video');
   const canvas = document.getElementById('capture-canvas');
-  canvas.width  = video.videoWidth;
+  canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
-  ctx.save();
-  ctx.scale(-1, 1);
+  ctx.save(); ctx.scale(-1,1);
   ctx.drawImage(video, -canvas.width, 0);
   ctx.restore();
-  const imageBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  const b64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
   document.getElementById('result-photo').src = canvas.toDataURL('image/jpeg', 0.8);
   document.getElementById('analyzing').classList.add('show');
 
   try {
-    // ★ Vercelのサーバー経由でGeminiを呼ぶ（APIキーを隠す）
-    const response = await fetch('/api/generate', {
+    const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imageBase64,
-        scene: SCENE_NAMES[currentScene]
-      })
+      body: JSON.stringify({ imageBase64: b64, scene: SCENE_NAMES[currentScene] })
     });
-
-    const result = await response.json();
-    document.getElementById('result-scene-badge').textContent = SCENE_NAMES[currentScene];
+    const result = await res.json();
+    document.getElementById('r-scene').textContent  = SCENE_NAMES[currentScene];
     document.getElementById('r-trim').textContent   = result.trim;
     document.getElementById('r-keep').textContent   = result.keep;
     document.getElementById('r-advice').textContent = result.advice;
     document.getElementById('analyzing').classList.remove('show');
     document.getElementById('result-panel').classList.add('show');
-
   } catch(e) {
     document.getElementById('analyzing').classList.remove('show');
-    alert('診断に失敗しました。');
-    console.error(e);
+    alert('診断に失敗しました。再度お試しください。');
   }
 }
 
@@ -342,22 +481,20 @@ async function initFaceMesh() {
   faceMesh = new FaceMesh({
     locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
   });
-  faceMesh.setOptions({
-    maxNumFaces: 1, refineLandmarks: true,
-    minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
-  });
+  faceMesh.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
   faceMesh.onResults(results => {
-    const status  = document.getElementById('status');
-    const scanBtn = document.getElementById('scan-btn');
+    const dot  = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    const btn  = document.getElementById('scan-btn');
     if (results.multiFaceLandmarks?.length > 0) {
-      status.textContent = '● DETECTING';
-      status.className = 'detecting';
-      scanBtn.disabled = false;
-      drawEyebrowSVG(results.multiFaceLandmarks[0]);
+      dot.classList.add('on');
+      text.textContent = 'Detecting';
+      btn.disabled = false;
+      drawSVG(results.multiFaceLandmarks[0]);
     } else {
-      status.textContent = '● SEARCHING';
-      status.className = 'searching';
-      scanBtn.disabled = true;
+      dot.classList.remove('on');
+      text.textContent = 'Searching';
+      btn.disabled = true;
       document.getElementById('svg-overlay').innerHTML = '';
     }
   });
@@ -366,26 +503,23 @@ async function initFaceMesh() {
 async function startCamera() {
   const video = document.getElementById('video');
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' } });
     video.srcObject = stream;
     await new Promise(r => { video.onloadedmetadata = r; });
     await video.play();
     videoW = video.videoWidth  || 640;
     videoH = video.videoHeight || 480;
-    const svg = document.getElementById('svg-overlay');
-    svg.setAttribute('viewBox', `0 0 ${videoW} ${videoH}`);
-    const camera = new Camera(video, {
-      onFrame: async () => { if (faceMesh) await faceMesh.send({ image: video }); }
-    });
+    document.getElementById('svg-overlay').setAttribute('viewBox', `0 0 ${videoW} ${videoH}`);
+    const camera = new Camera(video, { onFrame: async () => { if (faceMesh) await faceMesh.send({ image: video }); } });
     camera.start();
-    document.getElementById('loading').style.display = 'none';
+    setTimeout(() => document.getElementById('splash').classList.add('hide'), 2200);
   } catch(e) {
-    document.getElementById('loading-sub').textContent = 'カメラの許可をしてください';
+    document.querySelector('.sp-loading').textContent = 'カメラの許可をしてください';
   }
 }
 
 window.addEventListener('load', async () => {
-  renderSceneButtons();
+  renderScenes();
   await initFaceMesh();
   await startCamera();
 });
