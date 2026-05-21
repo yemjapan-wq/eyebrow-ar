@@ -24,9 +24,9 @@ export default async function handler(req, res) {
   "keep": "残す・描き足す場所を具体的に"
 }`;
 
-    // 【修正確定箇所】コロン(:) を スラッシュ(/) に修正しました！これで404を確実に突破します
+    // 【完全復元】コロン(:generateContent)の形がGoogleの正解です
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash/generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
