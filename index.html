@@ -466,9 +466,7 @@ function drawSVG(landmarks) {
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
     rp.setAttribute('fill','url(#hatch)');
-    rp.setAttribute('stroke','#FF3B3B');
-    rp.setAttribute('stroke-width','2');
-    rp.setAttribute('stroke-opacity','0.9');
+   rp.setAttribute('stroke','none');
     redG.appendChild(rp);
     redWrap.appendChild(redG);
     svg.appendChild(redWrap);
