@@ -403,6 +403,35 @@ function drawSVG(landmarks) {
   svg.innerHTML = '';
   const tmpl = TEMPLATES[currentScene];
   if (!tmpl) return;
+
+  // ── defs: フィルター & グラデーション定義 ──
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML = `
+    <!-- エッジぼかしフィルター（青：残す） -->
+    <filter id="blur-blue" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="2.5"/>
+    </filter>
+    <!-- エッジぼかしフィルター（赤：削る） -->
+    <filter id="blur-red" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <!-- 青グラデーション：中央濃く、上下に透明 -->
+    <linearGradient id="grad-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#2E7CF6" stop-opacity="0.1"/>
+      <stop offset="30%"  stop-color="#2E7CF6" stop-opacity="0.75"/>
+      <stop offset="60%"  stop-color="#2E7CF6" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#2E7CF6" stop-opacity="0.05"/>
+    </linearGradient>
+    <!-- 赤グラデーション：中央濃く、上下に透明 -->
+    <linearGradient id="grad-red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FF3B3B" stop-opacity="0.05"/>
+      <stop offset="35%"  stop-color="#FF3B3B" stop-opacity="0.7"/>
+      <stop offset="65%"  stop-color="#FF3B3B" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FF3B3B" stop-opacity="0.05"/>
+    </linearGradient>
+  `;
+  svg.appendChild(defs);
+
   [
     { indices: LEFT_EYEBROW,  flip: false },
     { indices: RIGHT_EYEBROW, flip: true  }
@@ -415,16 +444,27 @@ function drawSVG(landmarks) {
     const cx = (minX + maxX) / 2;
     const cy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15;
     const sx = bW / 360, sy = sx * 3;
+
     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     if (flip) g.setAttribute('transform', `translate(${cx+200*sx},${cy-50*sy}) scale(${-sx},${sy})`);
     else      g.setAttribute('transform', `translate(${cx-200*sx},${cy-50*sy}) scale(${sx},${sy})`);
+
+    // 青パス（残す）: グラデーション塗り + ぼかし
     const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
-    bp.setAttribute('d', tmpl.path); bp.setAttribute('fill','#2E7CF6');
-    bp.setAttribute('fill-opacity','0.55'); bp.setAttribute('stroke','#6AABFF');
-    bp.setAttribute('stroke-width','1'); g.appendChild(bp);
+    bp.setAttribute('d', tmpl.path);
+    bp.setAttribute('fill', 'url(#grad-blue)');
+    bp.setAttribute('filter', 'url(#blur-blue)');
+    bp.setAttribute('stroke', 'rgba(100,180,255,0.3)');
+    bp.setAttribute('stroke-width', '0.5');
+    g.appendChild(bp);
+
+    // 赤パス（削る）: グラデーション塗り + ぼかし
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
-    rp.setAttribute('d', tmpl.red); rp.setAttribute('fill','#FF3B3B');
-    rp.setAttribute('fill-opacity','0.65'); g.appendChild(rp);
+    rp.setAttribute('d', tmpl.red);
+    rp.setAttribute('fill', 'url(#grad-red)');
+    rp.setAttribute('filter', 'url(#blur-red)');
+    g.appendChild(rp);
+
     svg.appendChild(g);
   });
 }
