@@ -6,50 +6,32 @@
 <title>眉毛ARナビ</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
     background: #0a0a0f;
     color: #fff;
     font-family: 'Helvetica Neue', sans-serif;
     height: 100vh;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
   }
-
-  /* カメラ表示エリア */
   #camera-wrap {
     position: relative;
     width: 100vw;
     height: 100vh;
   }
-
   #video {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* 鏡像反転 */
-  }
-
-  #canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
     transform: scaleX(-1);
   }
-
-  /* SVGオーバーレイ */
   #svg-overlay {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     pointer-events: none;
+    transform: scaleX(-1);
   }
-
-  /* UI */
   #ui {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -57,7 +39,6 @@
     background: linear-gradient(transparent, rgba(0,0,0,0.85));
     z-index: 10;
   }
-
   #scene-label {
     text-align: center;
     font-size: 11px;
@@ -66,16 +47,12 @@
     text-transform: uppercase;
     margin-bottom: 10px;
   }
-
   #scene-list {
     display: flex;
     gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
     justify-content: center;
     flex-wrap: wrap;
   }
-
   .scene-btn {
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.2);
@@ -88,15 +65,11 @@
     transition: all 0.2s;
     letter-spacing: 1px;
   }
-
   .scene-btn.active {
     background: #fff;
     color: #0a0a0f;
-    border-color: #fff;
     font-weight: 700;
   }
-
-  /* 凡例 */
   #legend {
     position: absolute;
     top: 20px;
@@ -106,7 +79,6 @@
     flex-direction: column;
     gap: 6px;
   }
-
   .legend-item {
     display: flex;
     align-items: center;
@@ -115,13 +87,7 @@
     color: #ffffffcc;
     letter-spacing: 1px;
   }
-
-  .legend-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-  }
-
-  /* ステータス */
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
   #status {
     position: absolute;
     top: 20px;
@@ -132,11 +98,8 @@
     z-index: 10;
     text-transform: uppercase;
   }
-
   #status.detecting { color: #2ecc71; }
   #status.searching { color: #e67e22; }
-
-  /* 性別切替 */
   #gender-toggle {
     position: absolute;
     top: 16px;
@@ -149,7 +112,6 @@
     border-radius: 20px;
     overflow: hidden;
   }
-
   .gender-btn {
     padding: 7px 20px;
     font-size: 11px;
@@ -160,14 +122,11 @@
     border: none;
     background: none;
   }
-
   .gender-btn.active {
     background: #fff;
     color: #0a0a0f;
     font-weight: 700;
   }
-
-  /* ローディング */
   #loading {
     position: fixed;
     inset: 0;
@@ -179,20 +138,8 @@
     z-index: 100;
     gap: 16px;
   }
-
-  #loading-title {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    color: #fff;
-  }
-
-  #loading-sub {
-    font-size: 11px;
-    color: #ffffff44;
-    letter-spacing: 3px;
-  }
-
+  #loading-title { font-size: 18px; font-weight: 700; letter-spacing: 4px; }
+  #loading-sub { font-size: 11px; color: #ffffff44; letter-spacing: 3px; }
   .spinner {
     width: 36px; height: 36px;
     border: 2px solid #ffffff11;
@@ -200,130 +147,82 @@
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
-
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
-<!-- ローディング画面 -->
 <div id="loading">
   <div class="spinner"></div>
   <div id="loading-title">EYEBROW AR</div>
   <div id="loading-sub">AI読み込み中...</div>
 </div>
 
-<!-- カメラ画面 -->
 <div id="camera-wrap">
   <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas"></canvas>
 
-  <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+  <svg id="svg-overlay"
+       xmlns="http://www.w3.org/2000/svg"
+       preserveAspectRatio="xMidYMid slice">
+  </svg>
 
-  <!-- ステータス -->
   <div id="status" class="searching">● SEARCHING</div>
 
-  <!-- 性別切替 -->
   <div id="gender-toggle">
-    <button class="gender-btn active" onclick="setGender('mens')">MENS</button>
-    <button class="gender-btn" onclick="setGender('womens')">WOMENS</button>
+    <button class="gender-btn active" onclick="setGender('mens', this)">MENS</button>
+    <button class="gender-btn" onclick="setGender('womens', this)">WOMENS</button>
   </div>
 
-  <!-- 凡例 -->
   <div id="legend">
-    <div class="legend-item">
-      <div class="legend-dot" style="background:#FF3333;"></div>
-      削る
-    </div>
-    <div class="legend-item">
-      <div class="legend-dot" style="background:#0055FF;"></div>
-      残す
-    </div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FF3333;"></div>削る</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0055FF;"></div>残す</div>
   </div>
 
-  <!-- シーン選択UI -->
   <div id="ui">
     <div id="scene-label">— シーンを選択 —</div>
     <div id="scene-list"></div>
   </div>
 </div>
 
-<!-- MediaPipe CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <script>
-// ═══════════════════════════════════════════
-// SVGテンプレートデータ（8パターン）
-// ═══════════════════════════════════════════
+// ═══════════════════════════
+// SVGテンプレート
+// ═══════════════════════════
 const TEMPLATES = {
-  'mens-business': {
-    label: 'ビジネス',
-    path: 'M 20,60 Q 150,48 280,35 L 380,50 Q 280,50 20,70 Z',
-    red:  'M 40,70 Q 160,60 260,50 Q 160,70 40,70 Z'
-  },
-  'mens-sexy': {
-    label: 'モテる',
-    path: 'M 20,60 Q 150,45 270,35 Q 320,35 380,60 Q 270,45 20,65 Z',
-    red:  'M 150,60 Q 250,50 300,55 Q 250,60 150,60 Z'
-  },
-  'mens-clean': {
-    label: '清潔',
-    path: 'M 20,55 L 20,40 L 280,40 L 380,55 L 280,55 Z',
-    red:  'M 30,60 Q 150,60 270,60 Q 150,65 30,60 Z'
-  },
-  'mens-strong': {
-    label: '強さ',
-    path: 'M 20,70 L 20,40 Q 150,45 270,28 L 380,55 L 270,45 Q 150,60 20,70 Z',
-    red:  'M 30,75 Q 150,65 260,50 Q 150,75 30,75 Z'
-  },
-  'womens-business': {
-    label: 'ビジネス',
-    path: 'M 20,55 Q 150,45 270,30 L 380,50 Q 270,40 20,60 Z',
-    red:  'M 50,65 Q 150,55 250,45 Q 150,60 50,65 Z'
-  },
-  'womens-sexy': {
-    label: 'モテる',
-    path: 'M 20,65 Q 120,30 260,25 Q 330,30 380,65 Q 260,35 20,70 Z',
-    red:  'M 40,75 Q 150,45 260,45 Q 150,60 40,75 Z'
-  },
-  'womens-natural': {
-    label: '優しさ',
-    path: 'M 20,60 Q 150,40 270,40 Q 320,45 380,65 Q 270,55 20,70 Z',
-    red:  'M 60,70 Q 180,55 280,60 Q 180,70 60,70 Z'
-  },
-  'womens-cute': {
-    label: '可愛い',
-    path: 'M 20,65 L 20,45 Q 200,45 380,52 L 380,58 Q 200,60 20,65 Z',
-    red:  'M 30,68 Q 200,63 350,60 Q 200,70 30,68 Z'
-  }
+  'mens-business':  { label:'ビジネス', path:'M 20,60 Q 150,48 280,35 L 380,50 Q 280,50 20,70 Z', red:'M 40,70 Q 160,60 260,50 Q 160,70 40,70 Z' },
+  'mens-sexy':      { label:'モテる',   path:'M 20,60 Q 150,45 270,35 Q 320,35 380,60 Q 270,45 20,65 Z', red:'M 150,60 Q 250,50 300,55 Q 250,60 150,60 Z' },
+  'mens-clean':     { label:'清潔',     path:'M 20,55 L 20,40 L 280,40 L 380,55 L 280,55 Z', red:'M 30,60 Q 150,60 270,60 Q 150,65 30,60 Z' },
+  'mens-strong':    { label:'強さ',     path:'M 20,70 L 20,40 Q 150,45 270,28 L 380,55 L 270,45 Q 150,60 20,70 Z', red:'M 30,75 Q 150,65 260,50 Q 150,75 30,75 Z' },
+  'womens-business':{ label:'ビジネス', path:'M 20,55 Q 150,45 270,30 L 380,50 Q 270,40 20,60 Z', red:'M 50,65 Q 150,55 250,45 Q 150,60 50,65 Z' },
+  'womens-sexy':    { label:'モテる',   path:'M 20,65 Q 120,30 260,25 Q 330,30 380,65 Q 260,35 20,70 Z', red:'M 40,75 Q 150,45 260,45 Q 150,60 40,75 Z' },
+  'womens-natural': { label:'優しさ',   path:'M 20,60 Q 150,40 270,40 Q 320,45 380,65 Q 270,55 20,70 Z', red:'M 60,70 Q 180,55 280,60 Q 180,70 60,70 Z' },
+  'womens-cute':    { label:'可愛い',   path:'M 20,65 L 20,45 Q 200,45 380,52 L 380,58 Q 200,60 20,65 Z', red:'M 30,68 Q 200,63 350,60 Q 200,70 30,68 Z' }
 };
 
-// シーン定義
 const SCENES = {
   mens:   ['mens-business','mens-sexy','mens-clean','mens-strong'],
   womens: ['womens-business','womens-sexy','womens-natural','womens-cute']
 };
 
-// ═══════════════════════════════════════════
-// 状態管理
-// ═══════════════════════════════════════════
+// MediaPipe 眉毛ランドマーク
+const LEFT_EYEBROW  = [46,53,52,65,55,70,63,105,66,107];
+const RIGHT_EYEBROW = [276,283,282,295,285,300,293,334,296,336];
+
 let currentGender = 'mens';
 let currentScene  = 'mens-business';
 let faceMesh      = null;
-let lastResults   = null;
+let videoW = 1, videoH = 1;
 
-// 眉毛のランドマークインデックス（MediaPipe FaceMesh）
-const LEFT_EYEBROW  = [70,63,105,66,107,55,65,52,53,46];
-const RIGHT_EYEBROW = [300,293,334,296,336,285,295,282,283,276];
-
-// ═══════════════════════════════════════════
-// UI初期化
-// ═══════════════════════════════════════════
-function setGender(gender) {
+// ═══════════════════════════
+// UI
+// ═══════════════════════════
+function setGender(gender, btn) {
   currentGender = gender;
   document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  btn.classList.add('active');
   currentScene = SCENES[gender][0];
   renderSceneButtons();
 }
@@ -344,110 +243,88 @@ function renderSceneButtons() {
   });
 }
 
-// ═══════════════════════════════════════════
-// SVGオーバーレイ描画
-// ═══════════════════════════════════════════
-function drawEyebrowSVG(landmarks, videoW, videoH) {
+// ═══════════════════════════
+// SVG描画（修正版）
+// ═══════════════════════════
+function drawEyebrowSVG(landmarks) {
   const svgEl = document.getElementById('svg-overlay');
   svgEl.innerHTML = '';
 
-  const template = TEMPLATES[currentScene];
-  if (!template) return;
+  const tmpl = TEMPLATES[currentScene];
+  if (!tmpl) return;
 
-  // 左右眉毛それぞれ描画
   [
-    { points: LEFT_EYEBROW,  flip: false },
-    { points: RIGHT_EYEBROW, flip: true  }
-  ].forEach(({ points, flip }) => {
+    { indices: LEFT_EYEBROW,  flip: false },
+    { indices: RIGHT_EYEBROW, flip: true  }
+  ].forEach(({ indices, flip }) => {
 
-    // 眉毛のバウンディングボックスを取得
-    const pts = points.map(i => landmarks[i]);
+    const pts = indices.map(i => landmarks[i]);
     const xs  = pts.map(p => p.x * videoW);
     const ys  = pts.map(p => p.y * videoH);
 
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-
-    const bW = maxX - minX;
-    const bH = maxY - minY;
-
-    // テンプレート座標系（400×100）→ 実際の顔座標へ変換
-    const scaleX = bW / 360;
-    const scaleY = Math.max(bH * 2.5, 20) / 100;
-
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
+    const bW = maxX - minX;
 
-    const tx = cx - (400 / 2) * scaleX;
-    const ty = cy - (100 / 2) * scaleY;
+    // テンプレートを眉毛サイズにスケーリング
+    // テンプレートの眉幅は x=20〜380 → 360px
+    const s = bW / 360;
 
-    // グループ作成
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
 
-    // 反転（右眉）
+    // テンプレート中心(200,50)を眉毛中心(cx,cy)に合わせる
     if (flip) {
-      const pivotX = cx;
+      // 右眉: テンプレートを反転して配置
       g.setAttribute('transform',
-        `translate(${pivotX},0) scale(-1,1) translate(${-pivotX},0)`
+        `translate(${cx + 200 * s},${cy - 50 * s}) scale(${-s},${s})`
+      );
+    } else {
+      g.setAttribute('transform',
+        `translate(${cx - 200 * s},${cy - 50 * s}) scale(${s},${s})`
       );
     }
 
-    g.setAttribute('transform',
-      (flip
-        ? `translate(${cx},0) scale(-1,1) translate(${-cx},0) `
-        : '') +
-      `translate(${tx},${ty}) scale(${scaleX},${scaleY})`
-    );
-
     // 青パス（残す）
-    const bluePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    bluePath.setAttribute('d', template.path);
-    bluePath.setAttribute('fill', '#0055FF');
-    bluePath.setAttribute('fill-opacity', '0.55');
-    bluePath.setAttribute('stroke', '#3399FF');
-    bluePath.setAttribute('stroke-width', '1');
-    g.appendChild(bluePath);
+    const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    bp.setAttribute('d', tmpl.path);
+    bp.setAttribute('fill', '#0055FF');
+    bp.setAttribute('fill-opacity', '0.6');
+    bp.setAttribute('stroke', '#66aaff');
+    bp.setAttribute('stroke-width', '1.5');
+    g.appendChild(bp);
 
     // 赤パス（削る）
-    const redPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    redPath.setAttribute('d', template.red);
-    redPath.setAttribute('fill', '#FF3333');
-    redPath.setAttribute('fill-opacity', '0.55');
-    g.appendChild(redPath);
+    const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    rp.setAttribute('d', tmpl.red);
+    rp.setAttribute('fill', '#FF3333');
+    rp.setAttribute('fill-opacity', '0.65');
+    g.appendChild(rp);
 
     svgEl.appendChild(g);
   });
 }
 
-// ═══════════════════════════════════════════
-// MediaPipe FaceMesh 初期化
-// ═══════════════════════════════════════════
+// ═══════════════════════════
+// MediaPipe初期化
+// ═══════════════════════════
 async function initFaceMesh() {
   faceMesh = new FaceMesh({
-    locateFile: (file) =>
-      `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
   });
-
   faceMesh.setOptions({
     maxNumFaces: 1,
     refineLandmarks: true,
     minDetectionConfidence: 0.5,
     minTrackingConfidence: 0.5
   });
-
-  faceMesh.onResults((results) => {
-    lastResults = results;
+  faceMesh.onResults(results => {
     const status = document.getElementById('status');
-
-    if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+    if (results.multiFaceLandmarks?.length > 0) {
       status.textContent = '● DETECTING';
       status.className = 'detecting';
-
-      const landmarks = results.multiFaceLandmarks[0];
-      const video = document.getElementById('video');
-      drawEyebrowSVG(landmarks, video.videoWidth, video.videoHeight);
+      drawEyebrowSVG(results.multiFaceLandmarks[0]);
     } else {
       status.textContent = '● SEARCHING';
       status.className = 'searching';
@@ -456,43 +333,40 @@ async function initFaceMesh() {
   });
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════
 // カメラ起動
-// ═══════════════════════════════════════════
+// ═══════════════════════════
 async function startCamera() {
   const video = document.getElementById('video');
-
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     video.srcObject = stream;
 
-    await new Promise(resolve => video.onloadedmetadata = resolve);
+    await new Promise(r => video.onloadedmetadata = r);
+
+    // ★ ここが修正のキモ：SVGのviewBoxをカメラ解像度に合わせる
+    videoW = video.videoWidth;
+    videoH = video.videoHeight;
+    const svg = document.getElementById('svg-overlay');
+    svg.setAttribute('viewBox', `0 0 ${videoW} ${videoH}`);
 
     const camera = new Camera(video, {
-      onFrame: async () => {
-        if (faceMesh) await faceMesh.send({ image: video });
-      },
-      width: 1280,
-      height: 720
+      onFrame: async () => { if (faceMesh) await faceMesh.send({ image: video }); },
+      width: videoW, height: videoH
     });
-
     camera.start();
-
-    // ローディング非表示
     document.getElementById('loading').style.display = 'none';
 
-  } catch (err) {
-    document.getElementById('loading-sub').textContent =
-      'カメラへのアクセスを許可してください';
-    console.error(err);
+  } catch(e) {
+    document.getElementById('loading-sub').textContent = 'カメラの許可をしてください';
   }
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════
 // 起動
-// ═══════════════════════════════════════════
+// ═══════════════════════════
 window.addEventListener('load', async () => {
   renderSceneButtons();
   await initFaceMesh();
