@@ -8,12 +8,25 @@ export default async function handler(req, res) {
 
   try {
     const { imageBase64, gender } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    
+    // バリデーション
+    if (!imageBase64 || !gender) {
+      return res.status(400).json({ error: 'Missing required fields: imageBase64 or gender' });
+    }
 
-    const prompt = `あなたは人相学と眉毛の専門家です。この顔写真を分析してください。
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('Server Configuration Error: GEMINI_API_KEY is missing.');
+      return res.status(500).json({ error: 'Internal Server Configuration Error' });
+    }
+
+    // Base64の接頭辞（data:image/jpeg;base64, 等）があれば削除
+    const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+    const prompt = あなたは人相学と眉毛の専門家です。この顔写真を分析してください。
 性別は「${gender}」です。
 
-以下のJSON形式のみで返してください。説明文・マークダウン不要。
+以下のJSON形式で返してください。
 
 {
   "physiognomy": "人相学の見解を200文字程度で。この人の性格・印象・運勢を具体的に述べる",
@@ -22,42 +35,56 @@ export default async function handler(req, res) {
   "scene": "以下から最適なシーンを1つだけ返す。mens-business / mens-sexy / mens-clean / mens-strong / womens-business / womens-sexy / womens-natural / womens-cute",
   "trim": "削る・整える場所を具体的に",
   "keep": "残す・描き足す場所を具体的に"
-}`;
+};
 
-    // 【完全復元】コロン(:generateContent)の形がGoogleの正解です
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey},
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [
-            { text: prompt },
-            { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
-          ]}],
-          generationConfig: { maxOutputTokens: 2000, temperature: 0.8 }
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: 'image/jpeg', data: cleanBase64 } }
+            ]
+          }],
+          generationConfig: { 
+            maxOutputTokens: 2000, 
+            temperature: 0.7, // 構造化出力のため、少しだけランダム性を下げて安定化
+            responseMimeType: "application/json" // 確実なJSON化の強制
+          }
         })
       }
     );
 
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Gemini API Error Details:', JSON.stringify(errorData));
+      throw new Error(Gemini API responded with status ${response.status});
+    }
 
     const data = await response.json();
     const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
+    // 確実にパースするための処理
     let result;
     try {
       result = JSON.parse(raw);
     } catch {
       const match = raw.match(/\{[\s\S]*\}/);
-      if (match) result = JSON.parse(match[0]);
-      else throw new Error('parse failed: ' + raw.slice(0, 100));
+      if (match) {
+        result = JSON.parse(match[0]);
+      } else {
+        throw new Error('Failed to parse Gemini response as JSON: ' + raw.slice(0, 100));
+      }
     }
 
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error('Error:', error.message);
-    return res.status(500).json({ error: error.message });
+    console.error('API Route Error:', error.message);
+    // ユーザーには詳細なエラー（APIキーやエンドポイントの生エラー）を見せず、ジェネリックなエラーを返す
+    return res.status(500).json({ error: '分析に失敗しました。画像形式などを確認してください。' });
   }
 }
