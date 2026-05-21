@@ -7,12 +7,22 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { imageBase64, scene } = req.body;
+    const { imageBase64, gender } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
-    const prompt = `眉毛の専門家として、この顔写真を見て「${scene}」を目指す眉毛アドバイスをJSONで返してください。
-必ず下記の形式のみ。他は不要。
-{"trim":"削る場所","keep":"残す場所","advice":"アドバイス"}`;
+    const prompt = `あなたは人相学と眉毛の専門家です。この顔写真を分析してください。
+性別は「${gender}」です。
+
+以下のJSON形式のみで返してください。説明文・マークダウン不要。
+
+{
+  "physiognomy": "人相学の見解を200文字程度で。この人の性格・印象・運勢を具体的に述べる",
+  "weakness": "顔相から読み取れる弱点や改善できる印象を1文で",
+  "recommendation": "その弱点を眉毛で補うための提案を1〜2文で具体的に",
+  "scene": "以下から最適なシーンを1つだけ返す。mens-business / mens-sexy / mens-clean / mens-strong / womens-business / womens-sexy / womens-natural / womens-cute",
+  "trim": "削る・整える場所を具体的に",
+  "keep": "残す・描き足す場所を具体的に"
+}`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -24,10 +34,7 @@ export default async function handler(req, res) {
             { text: prompt },
             { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
           ]}],
-          generationConfig: {
-            maxOutputTokens: 2000,
-            temperature: 0.7
-          }
+          generationConfig: { maxOutputTokens: 2000, temperature: 0.8 }
         })
       }
     );
@@ -37,28 +44,19 @@ export default async function handler(req, res) {
     const data = await response.json();
     const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
-    // まず直接パースを試みる
     let result;
     try {
       result = JSON.parse(raw);
     } catch {
-      // { } で囲まれた部分を抽出して再試行
-      const match = raw.match(/\{[^{}]*\}/s);
-      if (match) {
-        result = JSON.parse(match[0]);
-      } else {
-        throw new Error('パース失敗: ' + raw.slice(0, 80));
-      }
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) result = JSON.parse(match[0]);
+      else throw new Error('parse failed: ' + raw.slice(0, 100));
     }
 
     return res.status(200).json(result);
 
   } catch (error) {
     console.error('Error:', error.message);
-    return res.status(500).json({
-      trim: '診断エラー',
-      keep: '再度お試しください',
-      advice: error.message
-    });
+    return res.status(500).json({ error: error.message });
   }
 }
