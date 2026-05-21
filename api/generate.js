@@ -24,9 +24,9 @@ export default async function handler(req, res) {
   "keep": "残す・描き足す場所を具体的に"
 }`;
 
-    // 【修正箇所】v1beta から v1 に変更し、最新のURLエンドポイントに修正しました
+    // 【完全確定版】画像送信に対応した正しいv1betaのURLと、正確なモデル名の組み合わせです
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
