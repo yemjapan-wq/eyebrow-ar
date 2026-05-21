@@ -408,11 +408,17 @@ function drawSVG(landmarks) {
   const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
   defs.innerHTML = `
     <filter id="f-blue" x="-30%" y="-60%" width="160%" height="220%">
-      <feGaussianBlur stdDeviation="3"/>
-    </filter>
-    <filter id="f-red" x="-30%" y="-60%" width="160%" height="220%">
       <feGaussianBlur stdDeviation="2.5"/>
     </filter>
+    <filter id="f-red" x="-30%" y="-60%" width="160%" height="220%">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <!-- 斜線パターン（削る＝設計図） -->
+    <pattern id="hatch" x="0" y="0" width="8" height="8"
+             patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8"
+            stroke="#FF3B3B" stroke-width="2.5" stroke-opacity="0.85"/>
+    </pattern>
   `;
   svg.appendChild(defs);
 
@@ -434,34 +440,35 @@ function drawSVG(landmarks) {
       ? `translate(${cx+200*sx},${cy-50*sy}) scale(${-sx},${sy})`
       : `translate(${cx-200*sx},${cy-50*sy}) scale(${sx},${sy})`;
 
-    // 青パス（残す）- アウトラインのみ
+    // 青パス（残す）- ダークブラウン + darkenブレンド
     const blueWrap = document.createElementNS('http://www.w3.org/2000/svg','g');
     blueWrap.setAttribute('filter','url(#f-blue)');
+    blueWrap.style.mixBlendMode = 'darken';
     const blueG = document.createElementNS('http://www.w3.org/2000/svg','g');
     blueG.setAttribute('transform', tf);
     const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
     bp.setAttribute('d', tmpl.path);
-    bp.setAttribute('fill','#2E7CF6');
-    bp.setAttribute('fill-opacity','0.15');
-    bp.setAttribute('stroke','#44aaff');
-    bp.setAttribute('stroke-width','3');
-    bp.setAttribute('stroke-opacity','0.9');
+    bp.setAttribute('fill','#3d2b1f');
+    bp.setAttribute('fill-opacity','0.65');
+    bp.setAttribute('stroke','#6b4c3b');
+    bp.setAttribute('stroke-width','1.5');
+    bp.setAttribute('stroke-opacity','0.5');
     blueG.appendChild(bp);
     blueWrap.appendChild(blueG);
     svg.appendChild(blueWrap);
 
-    // 赤パス（削る）- アウトラインのみ
+    // 赤パス（削る）- 斜線パターン（設計図）
     const redWrap = document.createElementNS('http://www.w3.org/2000/svg','g');
     redWrap.setAttribute('filter','url(#f-red)');
     const redG = document.createElementNS('http://www.w3.org/2000/svg','g');
     redG.setAttribute('transform', tf);
+    // 斜線塗り
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
-    rp.setAttribute('fill','#FF3B3B');
-    rp.setAttribute('fill-opacity','0.12');
-    rp.setAttribute('stroke','#ff5555');
-    rp.setAttribute('stroke-width','2.5');
-    rp.setAttribute('stroke-opacity','0.85');
+    rp.setAttribute('fill','url(#hatch)');
+    rp.setAttribute('stroke','#FF3B3B');
+    rp.setAttribute('stroke-width','2');
+    rp.setAttribute('stroke-opacity','0.9');
     redG.appendChild(rp);
     redWrap.appendChild(redG);
     svg.appendChild(redWrap);
