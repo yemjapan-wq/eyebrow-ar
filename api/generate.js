@@ -10,9 +10,9 @@ export default async function handler(req, res) {
     const { imageBase64, scene } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
-    const prompt = `あなたは眉毛の専門家です。この顔写真を見て「${scene}」を目指す眉毛アドバイスを返してください。
-必ず以下のJSON形式のみで返してください。説明文・マークダウン・コードブロック不要。
-{"trim":"削る場所の説明","keep":"残す場所の説明","advice":"アドバイス2〜3文"}`;
+    const prompt = `眉毛の専門家として、この顔写真を見て「${scene}」を目指す眉毛アドバイスをJSONで返してください。
+必ず下記の形式のみ。他は不要。
+{"trim":"削る場所","keep":"残す場所","advice":"アドバイス"}`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
             { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
           ]}],
           generationConfig: {
-            maxOutputTokens: 1000,
+            maxOutputTokens: 2000,
             temperature: 0.7
           }
         })
@@ -35,11 +35,22 @@ export default async function handler(req, res) {
     if (!response.ok) throw new Error(`API error: ${response.status}`);
 
     const data = await response.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('JSON not found: ' + raw.slice(0, 100));
+    const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
-    const result = JSON.parse(match[0]);
+    // まず直接パースを試みる
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      // { } で囲まれた部分を抽出して再試行
+      const match = raw.match(/\{[^{}]*\}/s);
+      if (match) {
+        result = JSON.parse(match[0]);
+      } else {
+        throw new Error('パース失敗: ' + raw.slice(0, 80));
+      }
+    }
+
     return res.status(200).json(result);
 
   } catch (error) {
