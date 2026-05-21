@@ -434,36 +434,34 @@ function drawSVG(landmarks) {
       ? `translate(${cx+200*sx},${cy-50*sy}) scale(${-sx},${sy})`
       : `translate(${cx-200*sx},${cy-50*sy}) scale(${sx},${sy})`;
 
-    // 青パス（残す）- 薄い透明ガイド
+    // 青パス（残す）- アウトラインのみ
     const blueWrap = document.createElementNS('http://www.w3.org/2000/svg','g');
     blueWrap.setAttribute('filter','url(#f-blue)');
-    blueWrap.setAttribute('opacity','0.5');
     const blueG = document.createElementNS('http://www.w3.org/2000/svg','g');
     blueG.setAttribute('transform', tf);
     const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
     bp.setAttribute('d', tmpl.path);
     bp.setAttribute('fill','#2E7CF6');
-    bp.setAttribute('fill-opacity','0.35');
-    bp.setAttribute('stroke','#88ccff');
-    bp.setAttribute('stroke-width','1.5');
-    bp.setAttribute('stroke-opacity','0.7');
+    bp.setAttribute('fill-opacity','0.15');
+    bp.setAttribute('stroke','#44aaff');
+    bp.setAttribute('stroke-width','3');
+    bp.setAttribute('stroke-opacity','0.9');
     blueG.appendChild(bp);
     blueWrap.appendChild(blueG);
     svg.appendChild(blueWrap);
 
-    // 赤パス（削る）- 薄い透明ガイド
+    // 赤パス（削る）- アウトラインのみ
     const redWrap = document.createElementNS('http://www.w3.org/2000/svg','g');
     redWrap.setAttribute('filter','url(#f-red)');
-    redWrap.setAttribute('opacity','0.5');
     const redG = document.createElementNS('http://www.w3.org/2000/svg','g');
     redG.setAttribute('transform', tf);
     const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
     rp.setAttribute('d', tmpl.red);
     rp.setAttribute('fill','#FF3B3B');
-    rp.setAttribute('fill-opacity','0.3');
-    rp.setAttribute('stroke','#ff8888');
-    rp.setAttribute('stroke-width','1');
-    rp.setAttribute('stroke-opacity','0.6');
+    rp.setAttribute('fill-opacity','0.12');
+    rp.setAttribute('stroke','#ff5555');
+    rp.setAttribute('stroke-width','2.5');
+    rp.setAttribute('stroke-opacity','0.85');
     redG.appendChild(rp);
     redWrap.appendChild(redG);
     svg.appendChild(redWrap);
