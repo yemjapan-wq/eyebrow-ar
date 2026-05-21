@@ -241,7 +241,7 @@ function drawEyebrowSVG(landmarks) {
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
     const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
+    const cy = (minY + maxY) / 2 - (maxX - minX) * 0.15; // 眉毛の幅の15%分上にオフセット
     const bW = maxX - minX;
 
     // テンプレートx幅(360px)→実際の眉幅
