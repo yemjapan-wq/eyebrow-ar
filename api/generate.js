@@ -26,14 +26,14 @@ export default async function handler(req, res) {
 ・眉間が狭い：集中力が高く思慮深い。慎重だが、少し近寄りがたく見える場合も
 
 【眉毛で印象を整えるアドバイス（推奨スタイル対応）】
-・薄眉・短眉の人 → 少し濃いめに整えることで、自信と決断力の印象がアップ（mens-strong / womens-business推奨）
-・一文字眉の人 → 眉尻に少し変化をつけると、親しみやすさと色気がプラス（mens-sexy / womens-sexy推奨）
-・への字眉・上がり眉の人 → そのままの力強さを活かしつつ整える（mens-business / womens-business推奨）
-・下がり眉の人 → 優しさを保ちながら少し整えることで清潔感がアップ（mens-clean / womens-natural推奨）
-・八の字眉の人 → 眉頭を整えると、落ち着きと誠実さが伝わりやすくなる（mens-clean / womens-natural推奨）
+・薄眉・短眉の人：少し濃いめに整えると自信と決断力の印象がアップ（mens-strong / womens-business推奨）
+・一文字眉の人：眉尻に少し変化をつけると親しみやすさと色気がプラス（mens-sexy / womens-sexy推奨）
+・への字眉・上がり眉の人：力強さを活かしつつ整える（mens-business / womens-business推奨）
+・下がり眉の人：優しさを保ちながら整えると清潔感がアップ（mens-clean / womens-natural推奨）
+・八の字眉の人：眉頭を整えると落ち着きと誠実さが伝わりやすくなる（mens-clean / womens-natural推奨）
 
-この知識を活用して、ポジティブで前向きな表現で以下のJSONのみを返してください（他のテキスト不要）:
-{"physiognomy":"眉毛と顔全体から読み取れる性格・印象・魅力を200文字程度で。ポジティブな表現を中心に、改善できる点も優しく伝える","weakness":"印象の面で少し損をしている点を、改善のヒントとして1文でやさしく表現","recommendation":"人相学的に最も似合う眉毛スタイルと、それによって生まれる印象の変化を1〜2文で","scene":"mens-business or mens-sexy or mens-clean or mens-strong or womens-business or womens-sexy or womens-natural or womens-cute のどれか1つだけ","trim":"削る・整えるべき場所を具体的に（やさしい表現で）","keep":"残す・描き足すべき場所を具体的に"}`;
+必ず以下のJSONのみを返してください。マークダウン・コードブロック・説明文は一切不要です：
+{"physiognomy":"眉毛と顔全体から読み取れる性格・印象・魅力を200文字程度で。ポジティブな表現を中心に","weakness":"印象の面で少し損をしている点を改善のヒントとして1文でやさしく","recommendation":"人相学的に最も似合う眉毛スタイルとそれによって生まれる印象の変化を1〜2文で","scene":"mens-business or mens-sexy or mens-clean or mens-strong or womens-business or womens-sexy or womens-natural or womens-cute のどれか1つだけ","trim":"削る・整えるべき場所を具体的に","keep":"残す・描き足すべき場所を具体的に"}`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -47,8 +47,7 @@ export default async function handler(req, res) {
           ]}],
           generationConfig: {
             maxOutputTokens: 1000,
-            temperature: 0.8,
-            responseMimeType: 'application/json'
+            temperature: 0.8
           }
         })
       }
@@ -59,13 +58,22 @@ export default async function handler(req, res) {
     const data = await response.json();
     const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
+    console.log('Raw Gemini response:', raw.slice(0, 300));
+
     let result;
     try {
       result = JSON.parse(raw);
     } catch {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) result = JSON.parse(match[0]);
-      else throw new Error('JSON parse failed: ' + raw.slice(0, 100));
+      const match = raw.match(/\{[\s\S]*?\}/s);
+      if (match) {
+        try {
+          result = JSON.parse(match[0]);
+        } catch(e2) {
+          throw new Error('Parse failed. Raw: ' + raw.slice(0, 200));
+        }
+      } else {
+        throw new Error('No JSON found. Raw: ' + raw.slice(0, 200));
+      }
     }
 
     return res.status(200).json(result);
