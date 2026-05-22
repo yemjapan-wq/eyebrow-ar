@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-ComaxOutputTokens: 2000,ntrol-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
             { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
           ]}],
           generationConfig: {
-            maxOutputTokens: 1000,
+            maxOutputTokens: 2000,
             temperature: 0.8
           }
         })
