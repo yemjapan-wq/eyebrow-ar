@@ -149,8 +149,20 @@
     z-index:60; flex-direction:column; align-items:center; justify-content:center; gap:16px;
   }
   #analyzing.show { display:flex; }
-  .ana-ring { width:44px; height:44px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.1); border-top-color:#fff; animation:spin 0.9s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+  .ana-ring {
+    font-size:48px;
+    animation: heartbeat 0.8s ease-in-out infinite;
+    display:block;
+    line-height:1;
+  }
+  @keyframes heartbeat {
+    0%   { transform: scale(1);    }
+    14%  { transform: scale(1.25); }
+    28%  { transform: scale(1);    }
+    42%  { transform: scale(1.2);  }
+    70%  { transform: scale(1);    }
+    100% { transform: scale(1);    }
+  }
   .ana-text { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.5); }
   .ana-sub  { font-size:9px;  letter-spacing:2px; color:rgba(255,255,255,0.2); }
 
@@ -195,7 +207,7 @@
 
 <!-- ANALYZING -->
 <div id="analyzing">
-  <div class="ana-ring"></div>
+  <div class="ana-ring">🤍</div>
   <div class="ana-text">AI診断中</div>
   <div class="ana-sub">人相学 × 眉毛分析</div>
 </div>
@@ -221,8 +233,8 @@
   </div>
 
   <div id="gender-toggle">
-    <button class="gender-btn active" onclick="setGender('mens',this)">Mens</button>
-    <button class="gender-btn" onclick="setGender('womens',this)">Womens</button>
+    <button class="gender-btn" onclick="setGender('mens',this)">Mens</button>
+    <button class="gender-btn active" onclick="setGender('womens',this)">Womens</button>
   </div>
 
   <!-- SCAN MODE -->
@@ -335,7 +347,7 @@ const LEFT_EYEBROW  = [46,53,52,65,55,70,63,105,66,107];
 const RIGHT_EYEBROW = [276,283,282,295,285,300,293,334,296,336];
 
 // ── 状態 ──
-let currentGender = 'mens';
+let currentGender = 'womens';
 let currentScene  = 'mens-business';
 let aiScene       = 'mens-business';
 let faceMesh      = null;
