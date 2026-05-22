@@ -108,23 +108,16 @@
   }
   .scene-btn.active { background:#fff; color:#000; font-weight:600; border-color:#fff; }
 
-  /* 左右調整ボタン */
-  #adjust-wrap {
-    display:flex; align-items:center; justify-content:center; gap:24px; padding:0 20px 12px;
+  /* ドラッグヒント */
+  #drag-hint {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.15);
+    border-radius:12px; padding:12px 20px;
+    font-size:11px; letter-spacing:2px; color:rgba(255,255,255,0.6);
+    pointer-events:none; z-index:20; display:none;
+    backdrop-filter:blur(10px);
   }
-  .adjust-col { display:flex; flex-direction:column; align-items:center; gap:6px; }
-  .adjust-label { font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.3); text-transform:uppercase; }
-  .adj-btn {
-    width:46px; height:46px; background:rgba(255,255,255,0.08);
-    border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:12px;
-    font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s;
-  }
-  .adj-btn:active { background:rgba(255,255,255,0.2); transform:scale(0.93); }
-  #reset-adj-btn {
-    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-    color:rgba(255,255,255,0.3); padding:8px 18px; border-radius:20px;
-    font-size:10px; letter-spacing:2px; cursor:pointer;
-  }
+  #drag-hint.show { display:block; }
   #back-btn {
     display:flex; align-items:center; justify-content:center;
     width:calc(100% - 40px); margin:0 20px;
@@ -230,19 +223,7 @@
     <div id="ar-scene-label">AIが選んだ眉毛スタイル</div>
     <div id="ar-scene-name"></div>
     <div id="scene-wrap"></div>
-    <div id="adjust-wrap">
-      <div class="adjust-col">
-        <div class="adjust-label">右眉</div>
-        <button class="adj-btn" onclick="adjustY('right',-4)">↑</button>
-        <button class="adj-btn" onclick="adjustY('right',4)">↓</button>
-      </div>
-      <button id="reset-adj-btn" onclick="resetY()">リセット</button>
-      <div class="adjust-col">
-        <div class="adjust-label">左眉</div>
-        <button class="adj-btn" onclick="adjustY('left',-4)">↑</button>
-        <button class="adj-btn" onclick="adjustY('left',4)">↓</button>
-      </div>
-    </div>
+    <div style="text-align:center; font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.25); padding:6px 0 12px; text-transform:uppercase;">眉毛をドラッグして位置を調整</div>
     <button id="back-btn" onclick="backToScan()">← 診断結果に戻る</button>
   </div>
 </div>
@@ -311,15 +292,72 @@ let currentScene  = 'mens-business';
 let aiScene       = 'mens-business';
 let faceMesh      = null;
 let videoW = 640, videoH = 480;
-// 鏡像のため：画面右側=自分の左眉(LEFT_EYEBROW)、画面左側=自分の右眉(RIGHT_EYEBROW)
-let leftYOffset  = 0;  // LEFT_EYEBROW（画面右側）
-let rightYOffset = 0;  // RIGHT_EYEBROW（画面左側）
+let leftYOffset  = 0;
+let rightYOffset = 0;
+let leftXOffset  = 0;
+let rightXOffset = 0;
 
-function adjustY(side, delta) {
-  if (side === 'left')  leftYOffset  += delta;
-  if (side === 'right') rightYOffset += delta;
+// ── ドラッグ処理 ──
+// 最後に描画した各眉毛の中心座標（スクリーン座標）
+let lastLeftCenter  = null;
+let lastRightCenter = null;
+let dragging        = null; // 'left' | 'right' | null
+let dragStartY      = 0;
+let dragStartX      = 0;
+let dragStartOffsetY = 0;
+let dragStartOffsetX = 0;
+
+function initDrag() {
+  const svg = document.getElementById('svg-overlay');
+
+  function onTouchStart(e) {
+    if (!document.getElementById('bottom-ar').classList.contains('show')) return;
+    const touch = e.touches[0];
+    // スクリーン座標をビデオ座標に変換
+    const rect = svg.getBoundingClientRect();
+    const scaleX = videoW / rect.width;
+    const scaleY = videoH / rect.height;
+    // SVGはscaleX(-1)されているので、x座標を反転
+    const tx = (rect.width - (touch.clientX - rect.left)) * scaleX;
+    const ty = (touch.clientY - rect.top) * scaleY;
+
+    // どちらの眉毛に近いか判定（半径80px以内）
+    const threshold = 80 * scaleX;
+    if (lastLeftCenter && Math.abs(tx - lastLeftCenter.x) < threshold && Math.abs(ty - lastLeftCenter.y) < threshold) {
+      dragging = 'left';
+    } else if (lastRightCenter && Math.abs(tx - lastRightCenter.x) < threshold && Math.abs(ty - lastRightCenter.y) < threshold) {
+      dragging = 'right';
+    } else {
+      dragging = null; return;
+    }
+    dragStartX = touch.clientX;
+    dragStartY = touch.clientY;
+    dragStartOffsetX = dragging === 'left' ? leftXOffset : rightXOffset;
+    dragStartOffsetY = dragging === 'left' ? leftYOffset : rightYOffset;
+    e.preventDefault();
+  }
+
+  function onTouchMove(e) {
+    if (!dragging) return;
+    const touch = e.touches[0];
+    const rect  = svg.getBoundingClientRect();
+    const scaleY = videoH / rect.height;
+    const scaleX = videoW / rect.width;
+    const dy = (touch.clientY - dragStartY) * scaleY;
+    const dx = (touch.clientX - dragStartX) * scaleX;
+    if (dragging === 'left')  { leftYOffset  = dragStartOffsetY + dy; leftXOffset  = dragStartOffsetX - dx; }
+    if (dragging === 'right') { rightYOffset = dragStartOffsetY + dy; rightXOffset = dragStartOffsetX - dx; }
+    e.preventDefault();
+  }
+
+  function onTouchEnd() { dragging = null; }
+
+  svg.addEventListener('touchstart', onTouchStart, { passive: false });
+  svg.addEventListener('touchmove',  onTouchMove,  { passive: false });
+  svg.addEventListener('touchend',   onTouchEnd);
 }
-function resetY() { leftYOffset = 0; rightYOffset = 0; }
+
+function resetY() { leftYOffset = 0; rightYOffset = 0; leftXOffset = 0; rightXOffset = 0; }
 
 // ── UI ──
 function setGender(g, btn) {
@@ -371,18 +409,24 @@ function drawSVG(landmarks) {
 
   // LEFT_EYEBROW=画面右側, RIGHT_EYEBROW=画面左側
   [
-    { indices: LEFT_EYEBROW,  flip: false, yOff: leftYOffset  },
-    { indices: RIGHT_EYEBROW, flip: true,  yOff: rightYOffset }
-  ].forEach(({ indices, flip, yOff }) => {
+    { indices: LEFT_EYEBROW,  flip: false, yOff: leftYOffset,  xOff: leftXOffset  },
+    { indices: RIGHT_EYEBROW, flip: true,  yOff: rightYOffset, xOff: rightXOffset }
+  ].forEach(({ indices, flip, yOff, xOff }, i) => {
     const pts = indices.map(i => landmarks[i]);
     const xs  = pts.map(p => p.x * videoW);
     const ys  = pts.map(p => p.y * videoH);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const bW   = maxX - minX;
-    const cx   = (minX + maxX) / 2;
-    const cy   = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15 + yOff;
-    const sx   = bW / 360;
-    const sy   = sx * 3;
+    const baseCx = (minX + maxX) / 2;
+    const baseCy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15;
+    const cx = baseCx + xOff;
+    const cy = baseCy + yOff;
+    const sx = bW / 360;
+    const sy = sx * 3;
+
+    // 中心座標を記録（ドラッグ判定用）
+    if (i === 0) lastLeftCenter  = { x: baseCx, y: baseCy };
+    if (i === 1) lastRightCenter = { x: baseCx, y: baseCy };
 
     const tf = flip
       ? `translate(${cx + 200*sx},${cy - 50*sy}) scale(${-sx},${sy})`
@@ -513,6 +557,7 @@ async function startCamera() {
 }
 
 window.addEventListener('load', async () => {
+  initDrag();
   await initFaceMesh();
   await startCamera();
 });
