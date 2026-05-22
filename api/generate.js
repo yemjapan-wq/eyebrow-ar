@@ -1,62 +1,566 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ARCH AI</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000; font-family:-apple-system,'Helvetica Neue',sans-serif; color:#fff; }
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  /* SPLASH */
+  #splash {
+    position:fixed; inset:0; z-index:200; background:#000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition:opacity 0.8s ease;
+  }
+  #splash.hide { opacity:0; pointer-events:none; }
+  .sp-eye  { font-size:9px; letter-spacing:6px; color:rgba(255,255,255,0.25); text-transform:uppercase; margin-bottom:20px; }
+  .sp-logo { font-size:52px; font-weight:700; letter-spacing:-2px; color:#fff; margin-bottom:6px; }
+  .sp-logo span { font-weight:200; }
+  .sp-tag  { font-size:10px; letter-spacing:3px; color:rgba(255,255,255,0.25); margin-bottom:56px; }
+  .sp-line { width:48px; height:1px; background:rgba(255,255,255,0.15); position:relative; overflow:hidden; }
+  .sp-line::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:#fff; animation:scan 1.8s ease forwards; }
+  @keyframes scan { to { left:100%; } }
+  .sp-load { font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.2); margin-top:20px; }
+
+  /* APP */
+  #app { position:fixed; inset:0; }
+  #video {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%) scaleX(-1);
+    min-width:100%; min-height:100%; width:auto; height:auto;
+    filter:brightness(1.06) contrast(0.9) saturate(1.12) blur(0.3px);
+  }
+  #svg-overlay {
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; transform:scaleX(-1); display:none;
+  }
+  #svg-overlay.show { display:block; }
+
+  /* TOP BAR */
+  #topbar {
+    position:fixed; top:0; left:0; right:0; padding:54px 20px 16px;
+    background:linear-gradient(to bottom,rgba(0,0,0,0.7),transparent);
+    display:flex; align-items:center; justify-content:space-between; z-index:10;
+  }
+  #status-wrap { display:flex; align-items:center; gap:8px; }
+  #status-dot { width:6px; height:6px; border-radius:50%; background:#555; transition:background 0.3s; }
+  #status-dot.on { background:#34C759; box-shadow:0 0 8px #34C759; }
+  #status-text { font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.35); text-transform:uppercase; }
+  #app-name { font-size:14px; font-weight:600; letter-spacing:3px; }
+
+  /* AR LEGEND */
+  #ar-legend {
+    position:fixed; top:60px; right:16px; z-index:10;
+    display:none; flex-direction:column; gap:7px;
+  }
+  #ar-legend.show { display:flex; }
+  .leg { display:flex; align-items:center; gap:6px; font-size:10px; color:rgba(255,255,255,0.6); }
+  .leg-dot { width:8px; height:8px; border-radius:50%; }
+
+  /* GENDER TOGGLE */
+  #gender-toggle {
+    position:fixed; top:110px; left:50%; transform:translateX(-50%);
+    z-index:10; display:flex;
+    background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.12);
+    border-radius:30px; padding:3px;
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  }
+  .gender-btn {
+    padding:8px 28px; font-size:11px; font-weight:500; letter-spacing:2px;
+    cursor:pointer; border:none; background:none; color:rgba(255,255,255,0.4);
+    border-radius:26px; transition:all 0.25s; text-transform:uppercase;
+  }
+  .gender-btn.active { background:#fff; color:#000; font-weight:600; }
+
+  /* SCAN MODE BOTTOM */
+  #bottom-scan {
+    position:fixed; bottom:0; left:0; right:0; padding:20px 20px 50px;
+    background:linear-gradient(to top,rgba(0,0,0,0.9),transparent); z-index:10;
+  }
+  .bottom-hint { text-align:center; font-size:10px; letter-spacing:2px; color:rgba(255,255,255,0.25); margin-bottom:16px; text-transform:uppercase; }
+  #scan-btn {
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    background:#fff; color:#000; border:none; padding:17px; border-radius:14px;
+    font-size:15px; font-weight:600; letter-spacing:1px; cursor:pointer; transition:all 0.2s;
+  }
+  #scan-btn:active { transform:scale(0.97); }
+  #scan-btn:disabled { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.2); cursor:not-allowed; }
+  #scan-btn:disabled:active { transform:none; }
+  .scan-circle { width:18px; height:18px; border-radius:50%; border:2px solid currentColor; position:relative; flex-shrink:0; }
+  .scan-circle::after { content:''; position:absolute; top:50%; left:50%; width:6px; height:6px; border-radius:50%; background:currentColor; transform:translate(-50%,-50%); }
+
+  /* AR MODE BOTTOM */
+  #bottom-ar {
+    position:fixed; bottom:0; left:0; right:0; padding:0 0 44px;
+    background:linear-gradient(to top,rgba(0,0,0,0.9),transparent); z-index:10; display:none;
+  }
+  #bottom-ar.show { display:block; }
+  #ar-scene-label { text-align:center; font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.3); margin:14px 0 6px; text-transform:uppercase; }
+  #ar-scene-name { text-align:center; font-size:13px; font-weight:500; color:rgba(255,255,255,0.8); margin-bottom:12px; }
+  #scene-wrap { overflow-x:auto; display:flex; gap:8px; padding:0 20px 14px; scrollbar-width:none; }
+  #scene-wrap::-webkit-scrollbar { display:none; }
+  .scene-btn {
+    flex-shrink:0; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+    color:rgba(255,255,255,0.6); padding:8px 16px; border-radius:30px;
+    font-size:11px; cursor:pointer; white-space:nowrap; transition:all 0.2s; letter-spacing:0.5px;
+  }
+  .scene-btn.active { background:#fff; color:#000; font-weight:600; border-color:#fff; }
+
+  /* ドラッグヒント */
+  #drag-hint {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.15);
+    border-radius:12px; padding:12px 20px;
+    font-size:11px; letter-spacing:2px; color:rgba(255,255,255,0.6);
+    pointer-events:none; z-index:20; display:none;
+    backdrop-filter:blur(10px);
+  }
+  #drag-hint.show { display:block; }
+  #back-btn {
+    display:flex; align-items:center; justify-content:center;
+    width:calc(100% - 40px); margin:0 20px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.5); padding:14px; border-radius:14px;
+    font-size:13px; cursor:pointer; letter-spacing:1px;
+  }
+
+  /* ANALYZING */
+  #analyzing {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    z-index:60; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  }
+  #analyzing.show { display:flex; }
+  .ana-ring { width:44px; height:44px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.1); border-top-color:#fff; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .ana-text { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.5); }
+  .ana-sub  { font-size:9px;  letter-spacing:2px; color:rgba(255,255,255,0.2); }
+
+  /* RESULT PANEL */
+  #result-panel { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.97); z-index:50; overflow-y:auto; padding:60px 20px 40px; }
+  #result-panel.show { display:block; }
+  .r-photo-wrap { display:flex; justify-content:center; margin-bottom:24px; }
+  #result-photo { width:88px; height:88px; border-radius:50%; object-fit:cover; transform:scaleX(-1); border:1px solid rgba(255,255,255,0.12); }
+  .r-header { text-align:center; margin-bottom:28px; }
+  .r-eye   { font-size:9px; letter-spacing:4px; color:rgba(255,255,255,0.25); text-transform:uppercase; margin-bottom:8px; }
+  .r-title { font-size:20px; font-weight:700; letter-spacing:-0.3px; }
+  .r-div   { width:28px; height:1px; background:rgba(255,255,255,0.12); margin:14px auto 0; }
+  .r-card  { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px; margin-bottom:12px; }
+  .r-card-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .r-card-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .r-card-lbl  { font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.28); text-transform:uppercase; }
+  .r-card-text { font-size:13px; color:rgba(255,255,255,0.82); line-height:1.9; font-weight:300; }
+  .rec-badge   { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:30px; padding:8px 16px; font-size:12px; color:rgba(255,255,255,0.7); display:inline-block; margin-top:10px; }
+  #ar-btn {
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-top:16px;
+    background:#fff; color:#000; border:none; padding:17px; border-radius:14px;
+    font-size:15px; font-weight:600; letter-spacing:1px; cursor:pointer; transition:all 0.2s;
+  }
+  #ar-btn:active { transform:scale(0.97); }
+  #close-result-btn {
+    display:flex; align-items:center; justify-content:center; width:100%; margin-top:10px;
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+    color:rgba(255,255,255,0.4); padding:14px; border-radius:14px; font-size:13px; cursor:pointer; letter-spacing:1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-eye">AI Eyebrow Navigator</div>
+  <div class="sp-logo">ARCH<span>AI</span></div>
+  <div class="sp-tag">人相学 × 眉毛AR診断</div>
+  <div class="sp-line"></div>
+  <div class="sp-load">Loading...</div>
+</div>
+
+<!-- ANALYZING -->
+<div id="analyzing">
+  <div class="ana-ring"></div>
+  <div class="ana-text">AI診断中</div>
+  <div class="ana-sub">人相学 × 眉毛分析</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="cap" style="display:none;"></canvas>
+  <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"></svg>
+
+  <div id="topbar">
+    <div id="status-wrap">
+      <div id="status-dot"></div>
+      <div id="status-text">Searching</div>
+    </div>
+    <div id="app-name">ARCH AI</div>
+    <div style="width:60px;"></div>
+  </div>
+
+  <div id="ar-legend">
+    <div class="leg"><div class="leg-dot" style="background:#FF3B3B;"></div>削る</div>
+    <div class="leg"><div class="leg-dot" style="background:#6b4c3b;"></div>残す</div>
+  </div>
+
+  <div id="gender-toggle">
+    <button class="gender-btn active" onclick="setGender('mens',this)">Mens</button>
+    <button class="gender-btn" onclick="setGender('womens',this)">Womens</button>
+  </div>
+
+  <!-- SCAN MODE -->
+  <div id="bottom-scan">
+    <div class="bottom-hint">顔を画面に合わせてスキャン</div>
+    <button id="scan-btn" onclick="startScan()" disabled>
+      <div class="scan-circle"></div>
+      人相学 × 眉毛診断
+    </button>
+  </div>
+
+  <!-- AR MODE -->
+  <div id="bottom-ar">
+    <div id="ar-scene-label">AIが選んだ眉毛スタイル</div>
+    <div id="ar-scene-name"></div>
+    <div id="scene-wrap"></div>
+    <div style="text-align:center; font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.25); padding:6px 0 12px; text-transform:uppercase;">眉毛をドラッグして位置を調整</div>
+    <button id="back-btn" onclick="backToScan()">← 診断結果に戻る</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result-panel">
+  <div class="r-photo-wrap"><img id="result-photo" src="" alt=""></div>
+  <div class="r-header">
+    <div class="r-eye">Your Physiognomy Report</div>
+    <div class="r-title">人相 × 眉毛診断レポート</div>
+    <div class="r-div"></div>
+  </div>
+  <div class="r-card">
+    <div class="r-card-head"><div class="r-card-dot" style="background:#A78BFA;"></div><div class="r-card-lbl">あなたの人相</div></div>
+    <div class="r-card-text" id="r-physio"></div>
+  </div>
+  <div class="r-card">
+    <div class="r-card-head"><div class="r-card-dot" style="background:#FB923C;"></div><div class="r-card-lbl">顔相の弱点</div></div>
+    <div class="r-card-text" id="r-weakness"></div>
+  </div>
+  <div class="r-card">
+    <div class="r-card-head"><div class="r-card-dot" style="background:#34D399;"></div><div class="r-card-lbl">眉毛で補う方法</div></div>
+    <div class="r-card-text" id="r-rec"></div>
+    <div class="rec-badge" id="r-badge"></div>
+  </div>
+  <div class="r-card">
+    <div class="r-card-head"><div class="r-card-dot" style="background:#FF3B3B;"></div><div class="r-card-lbl">削る・整える場所</div></div>
+    <div class="r-card-text" id="r-trim"></div>
+  </div>
+  <div class="r-card">
+    <div class="r-card-head"><div class="r-card-dot" style="background:#6b4c3b;"></div><div class="r-card-lbl">残す・描き足す場所</div></div>
+    <div class="r-card-text" id="r-keep"></div>
+  </div>
+  <button id="ar-btn" onclick="goToAR()"><div class="scan-circle"></div>ARで眉毛を確認する</button>
+  <button id="close-result-btn" onclick="closeResult()">← やり直す</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script>
+// ── テンプレート ──
+const TEMPLATES = {
+  'mens-business':  { label:'ビジネス眉',  path:'M 20,60 Q 150,48 280,35 L 380,50 Q 280,50 20,70 Z', red:'M 40,70 Q 160,60 260,50 Q 160,70 40,70 Z' },
+  'mens-sexy':      { label:'モテ眉',      path:'M 20,60 Q 150,45 270,35 Q 320,35 380,60 Q 270,45 20,65 Z', red:'M 150,60 Q 250,50 300,55 Q 250,60 150,60 Z' },
+  'mens-clean':     { label:'清潔感眉',    path:'M 20,55 L 20,40 L 280,40 L 380,55 L 280,55 Z', red:'M 30,60 Q 150,60 270,60 Q 150,65 30,60 Z' },
+  'mens-strong':    { label:'強さ眉',      path:'M 20,70 L 20,40 Q 150,45 270,28 L 380,55 L 270,45 Q 150,60 20,70 Z', red:'M 30,75 Q 150,65 260,50 Q 150,75 30,75 Z' },
+  'womens-business':{ label:'ハンサム眉',  path:'M 20,55 Q 150,45 270,30 L 380,50 Q 270,40 20,60 Z', red:'M 50,65 Q 150,55 250,45 Q 150,60 50,65 Z' },
+  'womens-sexy':    { label:'エレガント眉', path:'M 20,65 Q 120,30 260,25 Q 330,30 380,65 Q 260,35 20,70 Z', red:'M 40,75 Q 150,45 260,45 Q 150,60 40,75 Z' },
+  'womens-natural': { label:'ふんわり眉',  path:'M 20,60 Q 150,40 270,40 Q 320,45 380,65 Q 270,55 20,70 Z', red:'M 60,70 Q 180,55 280,60 Q 180,70 60,70 Z' },
+  'womens-cute':    { label:'可愛い眉',    path:'M 20,65 L 20,45 Q 200,45 380,52 L 380,58 Q 200,60 20,65 Z', red:'M 30,68 Q 200,63 350,60 Q 200,70 30,68 Z' }
+};
+const SCENES_MENS   = ['mens-business','mens-sexy','mens-clean','mens-strong'];
+const SCENES_WOMENS = ['womens-business','womens-sexy','womens-natural','womens-cute'];
+const SCENE_NAMES = {
+  'mens-business':'ビジネス眉（信頼・知性）','mens-sexy':'モテ眉（フェロモン・色気）',
+  'mens-clean':'清潔眉（ナチュラル・爽やか）','mens-strong':'強さ眉（ワイルド・意思）',
+  'womens-business':'ハンサム眉（自立・知性）','womens-sexy':'エレガント眉（フェロモン・華やか）',
+  'womens-natural':'ふんわり眉（優しさ・親しみ）','womens-cute':'平行眉（ピュア・可愛らしさ）'
+};
+const LEFT_EYEBROW  = [46,53,52,65,55,70,63,105,66,107];
+const RIGHT_EYEBROW = [276,283,282,295,285,300,293,334,296,336];
+
+// ── 状態 ──
+let currentGender = 'mens';
+let currentScene  = 'mens-business';
+let aiScene       = 'mens-business';
+let faceMesh      = null;
+let videoW = 640, videoH = 480;
+let leftYOffset  = 0;
+let rightYOffset = 0;
+let leftXOffset  = 0;
+let rightXOffset = 0;
+
+// ── ドラッグ処理 ──
+// 最後に描画した各眉毛の中心座標（スクリーン座標）
+let lastLeftCenter  = null;
+let lastRightCenter = null;
+let dragging        = null; // 'left' | 'right' | null
+let dragStartY      = 0;
+let dragStartX      = 0;
+let dragStartOffsetY = 0;
+let dragStartOffsetX = 0;
+
+function initDrag() {
+  const svg = document.getElementById('svg-overlay');
+
+  function onTouchStart(e) {
+    if (!document.getElementById('bottom-ar').classList.contains('show')) return;
+    const touch = e.touches[0];
+    // スクリーン座標をビデオ座標に変換
+    const rect = svg.getBoundingClientRect();
+    const scaleX = videoW / rect.width;
+    const scaleY = videoH / rect.height;
+    // SVGはscaleX(-1)されているので、x座標を反転
+    const tx = (rect.width - (touch.clientX - rect.left)) * scaleX;
+    const ty = (touch.clientY - rect.top) * scaleY;
+
+    // どちらの眉毛に近いか判定（半径80px以内）
+    const threshold = 80 * scaleX;
+    if (lastLeftCenter && Math.abs(tx - lastLeftCenter.x) < threshold && Math.abs(ty - lastLeftCenter.y) < threshold) {
+      dragging = 'left';
+    } else if (lastRightCenter && Math.abs(tx - lastRightCenter.x) < threshold && Math.abs(ty - lastRightCenter.y) < threshold) {
+      dragging = 'right';
+    } else {
+      dragging = null; return;
+    }
+    dragStartX = touch.clientX;
+    dragStartY = touch.clientY;
+    dragStartOffsetX = dragging === 'left' ? leftXOffset : rightXOffset;
+    dragStartOffsetY = dragging === 'left' ? leftYOffset : rightYOffset;
+    e.preventDefault();
+  }
+
+  function onTouchMove(e) {
+    if (!dragging) return;
+    const touch = e.touches[0];
+    const rect  = svg.getBoundingClientRect();
+    const scaleY = videoH / rect.height;
+    const scaleX = videoW / rect.width;
+    const dy = (touch.clientY - dragStartY) * scaleY;
+    const dx = (touch.clientX - dragStartX) * scaleX;
+    if (dragging === 'left')  { leftYOffset  = dragStartOffsetY + dy; leftXOffset  = dragStartOffsetX - dx; }
+    if (dragging === 'right') { rightYOffset = dragStartOffsetY + dy; rightXOffset = dragStartOffsetX - dx; }
+    e.preventDefault();
+  }
+
+  function onTouchEnd() { dragging = null; }
+
+  svg.addEventListener('touchstart', onTouchStart, { passive: false });
+  svg.addEventListener('touchmove',  onTouchMove,  { passive: false });
+  svg.addEventListener('touchend',   onTouchEnd);
+}
+
+function resetY() { leftYOffset = 0; rightYOffset = 0; leftXOffset = 0; rightXOffset = 0; }
+
+// ── UI ──
+function setGender(g, btn) {
+  currentGender = g;
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderARScenes() {
+  const wrap = document.getElementById('scene-wrap');
+  wrap.innerHTML = '';
+  const scenes = currentGender === 'mens' ? SCENES_MENS : SCENES_WOMENS;
+  scenes.forEach(id => {
+    const btn = document.createElement('button');
+    btn.className = 'scene-btn' + (id === currentScene ? ' active' : '');
+    btn.textContent = TEMPLATES[id].label;
+    btn.onclick = () => {
+      currentScene = id;
+      document.getElementById('ar-scene-name').textContent = TEMPLATES[id].label;
+      document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+// ── AR描画 ──
+function drawSVG(landmarks) {
+  const svg = document.getElementById('svg-overlay');
+  svg.innerHTML = '';
+  const tmpl = TEMPLATES[currentScene];
+  if (!tmpl) return;
+
+  // defs
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML = `
+    <filter id="fb" x="-30%" y="-60%" width="160%" height="220%">
+      <feGaussianBlur stdDeviation="2.5"/>
+    </filter>
+    <filter id="fr" x="-30%" y="-60%" width="160%" height="220%">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <pattern id="hatch" x="0" y="0" width="8" height="8"
+             patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#FF3B3B" stroke-width="2.5" stroke-opacity="0.9"/>
+    </pattern>
+  `;
+  svg.appendChild(defs);
+
+  // LEFT_EYEBROW=画面右側, RIGHT_EYEBROW=画面左側
+  [
+    { indices: LEFT_EYEBROW,  flip: false, yOff: leftYOffset,  xOff: leftXOffset  },
+    { indices: RIGHT_EYEBROW, flip: true,  yOff: rightYOffset, xOff: rightXOffset }
+  ].forEach(({ indices, flip, yOff, xOff }, i) => {
+    const pts = indices.map(i => landmarks[i]);
+    const xs  = pts.map(p => p.x * videoW);
+    const ys  = pts.map(p => p.y * videoH);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const bW   = maxX - minX;
+    const baseCx = (minX + maxX) / 2;
+    const baseCy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15;
+    const cx = baseCx + xOff;
+    const cy = baseCy + yOff;
+    const sx = bW / 360;
+    const sy = sx * 3;
+
+    // 中心座標を記録（ドラッグ判定用）
+    if (i === 0) lastLeftCenter  = { x: baseCx, y: baseCy };
+    if (i === 1) lastRightCenter = { x: baseCx, y: baseCy };
+
+    const tf = flip
+      ? `translate(${cx + 200*sx},${cy - 50*sy}) scale(${-sx},${sy})`
+      : `translate(${cx - 200*sx},${cy - 50*sy}) scale(${sx},${sy})`;
+
+    // 残す（ダークブラウン・darkenブレンド）
+    const bw = document.createElementNS('http://www.w3.org/2000/svg','g');
+    bw.setAttribute('filter','url(#fb)');
+    bw.style.mixBlendMode = 'darken';
+    const bg = document.createElementNS('http://www.w3.org/2000/svg','g');
+    bg.setAttribute('transform', tf);
+    const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    bp.setAttribute('d', tmpl.path);
+    bp.setAttribute('fill','#3d2b1f');
+    bp.setAttribute('fill-opacity','0.7');
+    bp.setAttribute('stroke','none');
+    bg.appendChild(bp); bw.appendChild(bg); svg.appendChild(bw);
+
+    // 削る（斜線パターンのみ・枠線なし）
+    const rw = document.createElementNS('http://www.w3.org/2000/svg','g');
+    rw.setAttribute('filter','url(#fr)');
+    const rg = document.createElementNS('http://www.w3.org/2000/svg','g');
+    rg.setAttribute('transform', tf);
+    const rp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    rp.setAttribute('d', tmpl.red);
+    rp.setAttribute('fill','url(#hatch)');
+    rp.setAttribute('stroke','none');
+    rg.appendChild(rp); rw.appendChild(rg); svg.appendChild(rw);
+  });
+}
+
+// ── スキャン ──
+async function startScan() {
+  const video = document.getElementById('video');
+  const cap   = document.getElementById('cap');
+  cap.width = video.videoWidth; cap.height = video.videoHeight;
+  const ctx = cap.getContext('2d');
+  ctx.save(); ctx.scale(-1,1); ctx.drawImage(video,-cap.width,0); ctx.restore();
+  document.getElementById('result-photo').src = cap.toDataURL('image/jpeg',0.8);
+  const b64 = cap.toDataURL('image/jpeg',0.8).split(',')[1];
+  document.getElementById('analyzing').classList.add('show');
 
   try {
-    const { imageBase64, gender } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const res = await fetch('/api/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ imageBase64: b64, gender: currentGender === 'mens' ? '男性' : '女性' })
+    });
+    const result = await res.json();
 
-    const prompt = `あなたは人相学と眉毛の専門家です。この顔写真を分析してください。
-性別は「${gender}」です。
+    document.getElementById('r-physio').textContent   = result.physiognomy   || '';
+    document.getElementById('r-weakness').textContent = result.weakness       || '';
+    document.getElementById('r-rec').textContent      = result.recommendation || '';
+    document.getElementById('r-trim').textContent     = result.trim           || '';
+    document.getElementById('r-keep').textContent     = result.keep           || '';
 
-以下のJSON形式のみで返してください。説明文・マークダウン不要。
+    aiScene = result.scene || (currentGender === 'mens' ? 'mens-business' : 'womens-business');
+    if (!TEMPLATES[aiScene]) aiScene = currentGender === 'mens' ? 'mens-business' : 'womens-business';
+    document.getElementById('r-badge').textContent = '✨ ' + TEMPLATES[aiScene].label + ' を推奨';
 
-{
-  "physiognomy": "人相学の見解を200文字程度で。この人の性格・印象・運勢を具体的に述べる",
-  "weakness": "顔相から読み取れる弱点や改善できる印象を1文で",
-  "recommendation": "その弱点を眉毛で補うための提案を1〜2文で具体的に",
-  "scene": "以下から最適なシーンを1つだけ返す。mens-business / mens-sexy / mens-clean / mens-strong / womens-business / womens-sexy / womens-natural / womens-cute",
-  "trim": "削る・整える場所を具体的に",
-  "keep": "残す・描き足す場所を具体的に"
-}`;
+    document.getElementById('analyzing').classList.remove('show');
+    document.getElementById('result-panel').classList.add('show');
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [
-            { text: prompt },
-            { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
-          ]}],
-          generationConfig: { maxOutputTokens: 2000, temperature: 0.8 }
-        })
-      }
-    );
-
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-    const data = await response.json();
-    const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-
-    let result;
-    try {
-      result = JSON.parse(raw);
-    } catch {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) result = JSON.parse(match[0]);
-      else throw new Error('parse failed: ' + raw.slice(0, 100));
-    }
-
-    return res.status(200).json(result);
-
-  } catch (error) {
-    console.error('Error:', error.message);
-    return res.status(500).json({ error: error.message });
+  } catch(e) {
+    document.getElementById('analyzing').classList.remove('show');
+    alert('診断に失敗しました。再度お試しください。');
+    console.error(e);
   }
 }
+
+function goToAR() {
+  document.getElementById('result-panel').classList.remove('show');
+  currentScene = aiScene;
+  document.getElementById('bottom-scan').style.display = 'none';
+  document.getElementById('bottom-ar').classList.add('show');
+  document.getElementById('svg-overlay').classList.add('show');
+  document.getElementById('ar-legend').classList.add('show');
+  document.getElementById('gender-toggle').style.display = 'none';
+  document.getElementById('ar-scene-name').textContent = TEMPLATES[aiScene].label;
+  renderARScenes();
+}
+
+function backToScan() {
+  document.getElementById('bottom-scan').style.display = 'block';
+  document.getElementById('bottom-ar').classList.remove('show');
+  document.getElementById('svg-overlay').classList.remove('show');
+  document.getElementById('ar-legend').classList.remove('show');
+  document.getElementById('gender-toggle').style.display = 'flex';
+  document.getElementById('result-panel').classList.add('show');
+}
+
+function closeResult() {
+  document.getElementById('result-panel').classList.remove('show');
+}
+
+// ── MediaPipe ──
+async function initFaceMesh() {
+  faceMesh = new FaceMesh({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+  faceMesh.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+  faceMesh.onResults(results => {
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const btn = document.getElementById('scan-btn');
+    if (results.multiFaceLandmarks?.length > 0) {
+      dot.classList.add('on'); txt.textContent = 'Detecting'; btn.disabled = false;
+      if (document.getElementById('svg-overlay').classList.contains('show')) drawSVG(results.multiFaceLandmarks[0]);
+    } else {
+      dot.classList.remove('on'); txt.textContent = 'Searching'; btn.disabled = true;
+      document.getElementById('svg-overlay').innerHTML = '';
+    }
+  });
+}
+
+async function startCamera() {
+  const video = document.getElementById('video');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' } });
+    video.srcObject = stream;
+    await new Promise(r => { video.onloadedmetadata = r; });
+    await video.play();
+    videoW = video.videoWidth || 640; videoH = video.videoHeight || 480;
+    document.getElementById('svg-overlay').setAttribute('viewBox', `0 0 ${videoW} ${videoH}`);
+    const camera = new Camera(video, { onFrame: async () => { if (faceMesh) await faceMesh.send({ image: video }); } });
+    camera.start();
+    setTimeout(() => document.getElementById('splash').classList.add('hide'), 2200);
+  } catch(e) {
+    document.querySelector('.sp-load').textContent = 'カメラの許可をしてください';
+  }
+}
+
+window.addEventListener('load', async () => {
+  initDrag();
+  await initFaceMesh();
+  await startCamera();
+});
+</script>
+</body>
+</html>
