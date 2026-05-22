@@ -344,8 +344,8 @@ let leftYOffset  = 0, leftXOffset  = 0;
 let rightYOffset = 0, rightXOffset = 0;
 
 function moveEyebrow(side, dy, dx) {
-  if (side === 'left')  { leftYOffset  += dy; leftXOffset  += dx; }
-  if (side === 'right') { rightYOffset += dy; rightXOffset += dx; }
+  if (side === 'left')  { leftYOffset  += dy; leftXOffset  -= dx; }
+  if (side === 'right') { rightYOffset += dy; rightXOffset -= dx; }
 }
 function resetSide(side) {
   if (side === 'left')  { leftYOffset  = 0; leftXOffset  = 0; }
