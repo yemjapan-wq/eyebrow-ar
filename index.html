@@ -149,20 +149,8 @@
     z-index:60; flex-direction:column; align-items:center; justify-content:center; gap:16px;
   }
   #analyzing.show { display:flex; }
-  .ana-ring {
-    font-size:48px;
-    animation: heartbeat 0.8s ease-in-out infinite;
-    display:block;
-    line-height:1;
-  }
-  @keyframes heartbeat {
-    0%   { transform: scale(1);    }
-    14%  { transform: scale(1.25); }
-    28%  { transform: scale(1);    }
-    42%  { transform: scale(1.2);  }
-    70%  { transform: scale(1);    }
-    100% { transform: scale(1);    }
-  }
+  .ana-ring { width:44px; height:44px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.1); border-top-color:#fff; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
   .ana-text { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.5); }
   .ana-sub  { font-size:9px;  letter-spacing:2px; color:rgba(255,255,255,0.2); }
 
@@ -207,7 +195,7 @@
 
 <!-- ANALYZING -->
 <div id="analyzing">
-  <div class="ana-ring">🤍</div>
+  <div class="ana-ring"></div>
   <div class="ana-text">AI診断中</div>
   <div class="ana-sub">人相学 × 眉毛分析</div>
 </div>
