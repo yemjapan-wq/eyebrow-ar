@@ -108,22 +108,31 @@
   }
   .scene-btn.active { background:#fff; color:#000; font-weight:600; border-color:#fff; }
 
-  /* 浮動調整ボタン */
-  .fab-btn {
-    width:52px; height:52px;
-    background:rgba(0,0,0,0.65);
-    border:1.5px solid rgba(255,255,255,0.3);
-    color:#fff; border-radius:50%;
-    font-size:22px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-    transition:all 0.15s;
+  /* 8方向コントロール */
+  #ctrl-wrap {
+    display:flex; justify-content:center; gap:20px;
+    padding:8px 20px 12px;
   }
-  .fab-btn:active { background:rgba(255,255,255,0.25); transform:scale(0.9); }
-  .fab-label {
-    font-size:9px; letter-spacing:2px;
-    color:rgba(255,255,255,0.5); text-transform:uppercase;
+  .ctrl-side { display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .ctrl-label { font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.3); text-transform:uppercase; }
+  .ctrl-grid {
+    display:grid; grid-template-columns:repeat(3,36px);
+    grid-template-rows:repeat(3,36px); gap:3px;
+  }
+  .ctrl-btn {
+    width:36px; height:36px;
+    background:rgba(0,0,0,0.55);
+    border:1px solid rgba(255,255,255,0.2);
+    color:#fff; border-radius:8px;
+    font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.12s;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  }
+  .ctrl-btn:active { background:rgba(255,255,255,0.25); transform:scale(0.88); }
+  .ctrl-center {
+    background:rgba(255,255,255,0.06);
+    font-size:10px; color:rgba(255,255,255,0.3);
   }
   #back-btn {
     display:flex; align-items:center; justify-content:center;
@@ -230,19 +239,40 @@
     <div id="ar-scene-label">AIが選んだ眉毛スタイル</div>
     <div id="ar-scene-name"></div>
     <div id="scene-wrap"></div>
-    <button id="back-btn" onclick="backToScan()">← 診断結果に戻る</button>
-  </div>
 
-  <!-- 浮動調整ボタン（左眉・右眉） -->
-  <div id="adj-left" style="display:none; position:fixed; z-index:30; flex-direction:column; align-items:center; gap:6px;">
-    <button class="fab-btn" onclick="adjustY('left',-6)">↑</button>
-    <div class="fab-label">右眉</div>
-    <button class="fab-btn" onclick="adjustY('left',6)">↓</button>
-  </div>
-  <div id="adj-right" style="display:none; position:fixed; z-index:30; flex-direction:column; align-items:center; gap:6px;">
-    <button class="fab-btn" onclick="adjustY('right',-6)">↑</button>
-    <div class="fab-label">左眉</div>
-    <button class="fab-btn" onclick="adjustY('right',6)">↓</button>
+    <!-- 8方向コントロール -->
+    <div id="ctrl-wrap">
+      <div class="ctrl-side">
+        <div class="ctrl-label">右眉</div>
+        <div class="ctrl-grid">
+          <button class="ctrl-btn" onclick="moveEyebrow('right',-6,-6)">↖</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',-6,0)">↑</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',-6,6)">↗</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',0,-6)">←</button>
+          <button class="ctrl-btn ctrl-center" onclick="resetSide('right')">●</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',0,6)">→</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',6,-6)">↙</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',6,0)">↓</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('right',6,6)">↘</button>
+        </div>
+      </div>
+      <div class="ctrl-side">
+        <div class="ctrl-label">左眉</div>
+        <div class="ctrl-grid">
+          <button class="ctrl-btn" onclick="moveEyebrow('left',-6,-6)">↖</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',-6,0)">↑</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',-6,6)">↗</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',0,-6)">←</button>
+          <button class="ctrl-btn ctrl-center" onclick="resetSide('left')">●</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',0,6)">→</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',6,-6)">↙</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',6,0)">↓</button>
+          <button class="ctrl-btn" onclick="moveEyebrow('left',6,6)">↘</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="back-btn" onclick="backToScan()">← 診断結果に戻る</button>
   </div>
 </div>
 
@@ -310,44 +340,18 @@ let currentScene  = 'mens-business';
 let aiScene       = 'mens-business';
 let faceMesh      = null;
 let videoW = 640, videoH = 480;
-let leftYOffset  = 0;
-let rightYOffset = 0;
+let leftYOffset  = 0, leftXOffset  = 0;
+let rightYOffset = 0, rightXOffset = 0;
 
-function adjustY(side, delta) {
-  if (side === 'left')  leftYOffset  += delta;
-  if (side === 'right') rightYOffset += delta;
+function moveEyebrow(side, dy, dx) {
+  if (side === 'left')  { leftYOffset  += dy; leftXOffset  += dx; }
+  if (side === 'right') { rightYOffset += dy; rightXOffset += dx; }
 }
-
-// 浮動ボタンの位置を更新
-function updateFloatingButtons(leftCx, leftCy, rightCx, rightCy) {
-  if (!document.getElementById('bottom-ar').classList.contains('show')) return;
-  const svg   = document.getElementById('svg-overlay');
-  const rect  = svg.getBoundingClientRect();
-  const scaleX = rect.width  / videoW;
-  const scaleY = rect.height / videoH;
-
-  // SVGはscaleX(-1)なので画面x座標を反転
-  const toScreenX = (vx) => rect.left + (videoW - vx) * scaleX;
-  const toScreenY = (vy) => rect.top  + vy * scaleY;
-
-  const adjL = document.getElementById('adj-left');
-  const adjR = document.getElementById('adj-right');
-
-  if (leftCx && leftCy) {
-    const sx = toScreenX(leftCx);
-    const sy = toScreenY(leftCy);
-    adjL.style.display = 'flex';
-    adjL.style.left = (sx - 26) + 'px';
-    adjL.style.top  = (sy - 80) + 'px';
-  }
-  if (rightCx && rightCy) {
-    const sx = toScreenX(rightCx);
-    const sy = toScreenY(rightCy);
-    adjR.style.display = 'flex';
-    adjR.style.left = (sx - 26) + 'px';
-    adjR.style.top  = (sy - 80) + 'px';
-  }
+function resetSide(side) {
+  if (side === 'left')  { leftYOffset  = 0; leftXOffset  = 0; }
+  if (side === 'right') { rightYOffset = 0; rightXOffset = 0; }
 }
+function updateFloatingButtons() {}
 
 // ── UI ──
 function setGender(g, btn) {
@@ -400,9 +404,9 @@ function drawSVG(landmarks) {
   // LEFT_EYEBROW=画面右側, RIGHT_EYEBROW=画面左側
   let leftCx, leftCy, rightCx, rightCy;
   [
-    { indices: LEFT_EYEBROW,  flip: false, yOff: leftYOffset,  side: 'left'  },
-    { indices: RIGHT_EYEBROW, flip: true,  yOff: rightYOffset, side: 'right' }
-  ].forEach(({ indices, flip, yOff, side }, i) => {
+    { indices: LEFT_EYEBROW,  flip: false, yOff: leftYOffset,  xOff: leftXOffset  },
+    { indices: RIGHT_EYEBROW, flip: true,  yOff: rightYOffset, xOff: rightXOffset }
+  ].forEach(({ indices, flip, yOff, xOff, side }, i) => {
     const pts = indices.map(i => landmarks[i]);
     const xs  = pts.map(p => p.x * videoW);
     const ys  = pts.map(p => p.y * videoH);
@@ -410,13 +414,13 @@ function drawSVG(landmarks) {
     const bW   = maxX - minX;
     const baseCx = (minX + maxX) / 2;
     const baseCy = (Math.min(...ys) + Math.max(...ys)) / 2 - bW * 0.15;
-    const cx = baseCx;
+    const cx = baseCx + xOff;
     const cy = baseCy + yOff;
     const sx = bW / 360;
     const sy = sx * 3;
 
-    if (side === 'left')  { leftCx  = baseCx; leftCy  = baseCy; }
-    if (side === 'right') { rightCx = baseCx; rightCy = baseCy; }
+    if (i === 0) { leftCx  = baseCx; leftCy  = baseCy; }
+    if (i === 1) { rightCx = baseCx; rightCy = baseCy; }
 
     const tf = flip
       ? `translate(${cx + 200*sx},${cy - 50*sy}) scale(${-sx},${sy})`
@@ -506,8 +510,6 @@ function backToScan() {
   document.getElementById('svg-overlay').classList.remove('show');
   document.getElementById('ar-legend').classList.remove('show');
   document.getElementById('gender-toggle').style.display = 'flex';
-  document.getElementById('adj-left').style.display  = 'none';
-  document.getElementById('adj-right').style.display = 'none';
   document.getElementById('result-panel').classList.add('show');
 }
 
