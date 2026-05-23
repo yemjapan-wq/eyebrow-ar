@@ -30,7 +30,7 @@ console.log('Body keys:', req.body ? Object.keys(req.body) : 'null');
 {"physiognomy":"200文字で性格と印象","weakness":"改善点を1文","recommendation":"最適な眉毛と効果を1〜2文","scene":"mens-1かmens-2かmens-3かmens-4かmens-5かwomens-1かwomens-2かwomens-3かwomens-4かwomens-5","trim":"削る場所","keep":"残す場所"}`;
 
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
