@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 {"physiognomy":"眉毛と顔全体から読み取れる性格と印象を200文字で","weakness":"印象の改善点を1文でやさしく","recommendation":"最適な眉毛スタイルとその理由・効果を1〜2文で","scene":"mens-1/mens-2/mens-3/mens-4/mens-5/womens-1/womens-2/womens-3/womens-4/womens-5のどれか1つだけ","trim":"削る・整える場所","keep":"残す・描き足す場所"}`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      models/gemini-1.5-flash:generateContent,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
