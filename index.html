@@ -108,7 +108,17 @@
   }
   .scene-btn.active { background:#fff; color:#000; font-weight:600; border-color:#fff; }
 
-  /* 8方向コントロール */
+  /* 眉毛カラー選択 */
+  #color-wrap {
+    display:flex; justify-content:center; gap:10px; padding:0 20px 10px;
+  }
+  .color-btn {
+    width:34px; height:34px; border-radius:50%;
+    border:2px solid rgba(255,255,255,0.2);
+    cursor:pointer; transition:all 0.15s; flex-shrink:0;
+  }
+  .color-btn.active { border-color:#fff; transform:scale(1.15); box-shadow:0 0 8px rgba(255,255,255,0.5); }
+  .color-btn:active { transform:scale(0.92); }
   #ctrl-wrap {
     display:flex; justify-content:center; gap:20px;
     padding:8px 20px 12px;
@@ -240,6 +250,16 @@
     <div id="ar-scene-name"></div>
     <div id="scene-wrap"></div>
 
+    <!-- カラー選択 -->
+    <div id="color-wrap">
+      <button class="color-btn active" style="background:#1a1a1a;" onclick="setEyebrowColor('#1a1a1a',this)" title="ブラック"></button>
+      <button class="color-btn" style="background:#3d2b1f;" onclick="setEyebrowColor('#3d2b1f',this)" title="ダークブラウン"></button>
+      <button class="color-btn" style="background:#7b5c3e;" onclick="setEyebrowColor('#7b5c3e',this)" title="ライトブラウン"></button>
+      <button class="color-btn" style="background:#b8924a;" onclick="setEyebrowColor('#b8924a',this)" title="ゴールド"></button>
+      <button class="color-btn" style="background:#888888;" onclick="setEyebrowColor('#888888',this)" title="グレー"></button>
+      <button class="color-btn" style="background:#cc2200;" onclick="setEyebrowColor('#cc2200',this)" title="レッド"></button>
+    </div>
+
     <!-- 8方向コントロール -->
     <div id="ctrl-wrap">
       <div class="ctrl-side">
@@ -346,6 +366,13 @@ let faceMesh      = null;
 let videoW = 640, videoH = 480;
 let leftYOffset  = 0, leftXOffset  = 0;
 let rightYOffset = 0, rightXOffset = 0;
+let eyebrowColor = '#1a1a1a';
+
+function setEyebrowColor(color, btn) {
+  eyebrowColor = color;
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
 
 function moveEyebrow(side, dy, dx) {
   if (side === 'left')  { leftYOffset  += dy; leftXOffset  -= dx; }
@@ -438,7 +465,7 @@ function drawSVG(landmarks) {
     bg.setAttribute('transform', tf);
     const bp = document.createElementNS('http://www.w3.org/2000/svg','path');
     bp.setAttribute('d', tmpl.path);
-    bp.setAttribute('fill','#3d2b1f');
+    bp.setAttribute('fill', eyebrowColor);
     bp.setAttribute('fill-opacity','0.7');
     bp.setAttribute('stroke','none');
     bg.appendChild(bp); bw.appendChild(bg); svg.appendChild(bw);
