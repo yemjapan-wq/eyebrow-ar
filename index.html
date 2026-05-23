@@ -312,32 +312,36 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script>
-// ── テンプレート ──
+// ── テンプレート（人相学10パターン） ──
 const TEMPLATES = {
-  'mens-business':  { label:'ビジネス眉',  path:'M 20,60 Q 150,48 280,35 L 380,50 Q 280,50 20,70 Z', red:'M 40,70 Q 160,60 260,50 Q 160,70 40,70 Z' },
-  'mens-sexy':      { label:'モテ眉',      path:'M 20,60 Q 150,45 270,35 Q 320,35 380,60 Q 270,45 20,65 Z', red:'M 150,60 Q 250,50 300,55 Q 250,60 150,60 Z' },
-  'mens-clean':     { label:'清潔感眉',    path:'M 20,55 L 20,40 L 280,40 L 380,55 L 280,55 Z', red:'M 30,60 Q 150,60 270,60 Q 150,65 30,60 Z' },
-  'mens-strong':    { label:'強さ眉',      path:'M 20,70 L 20,40 Q 150,45 270,28 L 380,55 L 270,45 Q 150,60 20,70 Z', red:'M 30,75 Q 150,65 260,50 Q 150,75 30,75 Z' },
-  'womens-business':{ label:'ハンサム眉',  path:'M 20,55 Q 150,45 270,30 L 380,50 Q 270,40 20,60 Z', red:'M 50,65 Q 150,55 250,45 Q 150,60 50,65 Z' },
-  'womens-sexy':    { label:'エレガント眉', path:'M 20,65 Q 120,30 260,25 Q 330,30 380,65 Q 260,35 20,70 Z', red:'M 40,75 Q 150,45 260,45 Q 150,60 40,75 Z' },
-  'womens-natural': { label:'ふんわり眉',  path:'M 20,60 Q 150,40 270,40 Q 320,45 380,65 Q 270,55 20,70 Z', red:'M 60,70 Q 180,55 280,60 Q 180,70 60,70 Z' },
-  'womens-cute':    { label:'可愛い眉',    path:'M 20,65 L 20,45 Q 200,45 380,52 L 380,58 Q 200,60 20,65 Z', red:'M 30,68 Q 200,63 350,60 Q 200,70 30,68 Z' }
+  'mens-1': { label:'一文字眉',  path:'M 30,55 L 350,55 L 340,43 L 30,45 Z', red:'M 25,56 Q 180,56 355,56 Q 180,63 25,56 Z' },
+  'mens-2': { label:'平行眉',    path:'M 30,52 Q 190,48 350,51 L 345,41 Q 190,38 30,42 Z', red:'M 30,53 Q 190,52 350,52 Q 190,58 30,53 Z' },
+  'mens-3': { label:'上がり眉',  path:'M 30,62 L 260,33 L 350,22 L 345,34 L 260,45 L 30,72 Z', red:'M 30,73 L 260,46 L 350,35 Q 200,65 30,73 Z' },
+  'mens-4': { label:'八字眉',    path:'M 35,38 Q 180,48 345,68 L 335,76 Q 180,57 35,48 Z', red:'M 35,36 Q 180,46 345,66 Q 180,52 35,36 Z' },
+  'mens-5': { label:'濃い太眉',  path:'M 30,65 Q 190,55 350,50 L 345,32 Q 190,35 30,45 Z', red:'M 30,66 Q 190,56 350,51 Q 190,68 30,66 Z' },
+  'womens-1': { label:'アーチ眉', path:'M 35,60 Q 180,22 345,58 Q 180,32 35,68 Z', red:'M 35,69 Q 180,33 345,59 Q 180,45 35,69 Z' },
+  'womens-2': { label:'平行眉',   path:'M 35,53 Q 190,46 345,46 L 340,38 Q 190,38 35,45 Z', red:'M 35,54 Q 190,47 345,47 Q 190,53 35,54 Z' },
+  'womens-3': { label:'上がり眉', path:'M 35,58 L 240,34 L 345,26 Q 250,40 35,66 Z', red:'M 35,67 L 240,41 L 345,27 Q 200,55 35,67 Z' },
+  'womens-4': { label:'柳葉眉',   path:'M 40,55 Q 210,32 340,50 Q 210,40 40,58 Z', red:'M 40,59 Q 210,41 340,51 Q 210,47 40,59 Z' },
+  'womens-5': { label:'細眉',     path:'M 45,58 Q 195,36 335,52 Q 195,42 45,62 Z', red:'M 45,63 Q 195,43 335,53 Q 195,47 45,63 Z' }
 };
-const SCENES_MENS   = ['mens-business','mens-sexy','mens-clean','mens-strong'];
-const SCENES_WOMENS = ['womens-business','womens-sexy','womens-natural','womens-cute'];
+const SCENES_MENS   = ['mens-1','mens-2','mens-3','mens-4','mens-5'];
+const SCENES_WOMENS = ['womens-1','womens-2','womens-3','womens-4','womens-5'];
 const SCENE_NAMES = {
-  'mens-business':'ビジネス眉（信頼・知性）','mens-sexy':'モテ眉（フェロモン・色気）',
-  'mens-clean':'清潔眉（ナチュラル・爽やか）','mens-strong':'強さ眉（ワイルド・意思）',
-  'womens-business':'ハンサム眉（自立・知性）','womens-sexy':'エレガント眉（フェロモン・華やか）',
-  'womens-natural':'ふんわり眉（優しさ・親しみ）','womens-cute':'平行眉（ピュア・可愛らしさ）'
+  'mens-1':'一文字眉（真面目・誠実）','mens-2':'平行眉（穏やか・協調性）',
+  'mens-3':'上がり眉（積極的・行動力）','mens-4':'八字眉（優しい・思いやり）',
+  'mens-5':'濃い太眉（強い意志・頼りがい）',
+  'womens-1':'アーチ眉（上品・魅力的）','womens-2':'平行眉（優しい・親しみ）',
+  'womens-3':'上がり眉（明るい・華やか）','womens-4':'柳葉眉（繊細・優雅）',
+  'womens-5':'細眉（気配り上手・慎重）'
 };
 const LEFT_EYEBROW  = [46,53,52,65,55,70,63,105,66,107];
 const RIGHT_EYEBROW = [276,283,282,295,285,300,293,334,296,336];
 
 // ── 状態 ──
 let currentGender = 'womens';
-let currentScene  = 'mens-business';
-let aiScene       = 'mens-business';
+let currentScene  = 'womens-2';
+let aiScene       = 'womens-2';
 let faceMesh      = null;
 let videoW = 640, videoH = 480;
 let leftYOffset  = 0, leftXOffset  = 0;
@@ -478,8 +482,8 @@ async function startScan() {
     document.getElementById('r-trim').textContent     = result.trim           || '';
     document.getElementById('r-keep').textContent     = result.keep           || '';
 
-    aiScene = result.scene || (currentGender === 'mens' ? 'mens-business' : 'womens-business');
-    if (!TEMPLATES[aiScene]) aiScene = currentGender === 'mens' ? 'mens-business' : 'womens-business';
+    aiScene = result.scene || (currentGender === 'mens' ? 'mens-2' : 'womens-2');
+    if (!TEMPLATES[aiScene]) aiScene = currentGender === 'mens' ? 'mens-2' : 'womens-2';
     document.getElementById('r-badge').textContent = '✨ ' + TEMPLATES[aiScene].label + ' を推奨';
 
     document.getElementById('analyzing').classList.remove('show');
