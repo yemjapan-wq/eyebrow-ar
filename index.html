@@ -305,6 +305,10 @@
     <div class="r-div"></div>
   </div>
   <div class="r-card">
+    <div class="r-card-head"><div class="r-card-dot" style="background:#C084FC;"></div><div class="r-card-lbl">🔮 総合人相診断</div></div>
+    <div class="r-card-text" id="r-overall"></div>
+  </div>
+  <div class="r-card">
     <div class="r-card-head"><div class="r-card-dot" style="background:#A78BFA;"></div><div class="r-card-lbl">あなたの人相</div></div>
     <div class="r-card-text" id="r-physio"></div>
   </div>
@@ -503,6 +507,7 @@ async function startScan() {
     });
     const result = await res.json();
 
+    document.getElementById('r-overall').textContent   = result.overall       || '';
     document.getElementById('r-physio').textContent   = result.physiognomy   || '';
     document.getElementById('r-weakness').textContent = result.weakness       || '';
     document.getElementById('r-rec').textContent      = result.recommendation || '';
